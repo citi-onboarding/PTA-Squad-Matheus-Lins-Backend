@@ -1,6 +1,8 @@
-# Node Boilerplate
+# DistriLux Portal API
 
-A production-oriented foundation for TypeScript REST APIs. It keeps product decisions out of the core while making architecture, validation, tests, API contracts, documentation, and delivery verifiable.
+Backend of the DistriLux order portal (PTA Tech 26.2): ERP synchronization, credit rules, order submission, history load, document-triage agent, and churn results. Project rules are in [AGENTS.md](AGENTS.md); repository layout is in [ADR 0001](docs/adr/0001-repository-structure.md).
+
+It is built on the CITi Node boilerplate: a production-oriented foundation for TypeScript REST APIs. It keeps product decisions out of the core while making architecture, validation, tests, API contracts, documentation, and delivery verifiable.
 
 ## Included
 

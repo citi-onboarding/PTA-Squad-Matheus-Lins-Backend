@@ -7,6 +7,12 @@ context: |
   Use RFC 9457 Problem Details for errors. Write repository content in English.
   Every API change must update runtime validation, response validation, tests,
   and the generated OpenAPI contract together.
+  Product: DistriLux internal order portal (PTA Tech 26.2). Domain terms:
+  customer, product, receivable (título), order, supply contract, credit limit,
+  available credit, portfolio (carteira), and churn risk. The ERP is the system
+  of record and its amounts are integer cents. Cite PRD user stories
+  (US-001 to US-028) and business rules (RN-01 to RN-20) in proposals and
+  specifications.
 
 rules:
   proposal:

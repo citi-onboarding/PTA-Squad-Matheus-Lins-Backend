@@ -72,3 +72,30 @@
 - Flag edits or deletions of an applied migration, and migrations that are not additive and safe for deployed environments. Add a corrective migration instead.
 - Flag a module importing another module, or `src/shared` importing application layers.
 - Flag repository scripts that delete or overwrite paths before validating every expected marker and target. Perform a complete preflight before mutation.
+
+## Project context: DistriLux order portal
+
+- Client: DistriLux, an electrical-materials distributor in Recife that sells on credit to about 120 companies in eight Northeast states. This is the PTA Tech 26.2 challenge (2026-11-23 to 2026-12-12).
+- Product: an internal order portal connected to the client's ERP, with a sales dashboard, a manager mobile app, an AI document-triage agent, and a churn-risk model.
+- Repositories: `PTA-Squad-Matheus-Lins-Backend` (API, ERP sync, AI agent, history load, `ml/` churn model), `PTA-Squad-Matheus-Lins-web` (portal), and `PTA-Squad-Matheus-Lins-Mobile` (manager app). See ADR 0001 in the backend.
+- Scope comes from the PRD: user stories `US-001`–`US-028` and business rules `RN-01`–`RN-20`. Work is tracked as features `F00`–`F13`; cite the feature, story, and rule IDs in OpenSpec changes, tests, and pull requests.
+- The ERP is the system of record. The portal reads customers, products, and receivables (títulos) and only writes orders. When legacy spreadsheets and the ERP disagree, the ERP wins (RN-09).
+- ERP amounts are integer cents; always display Brazilian reais, for example `R$ 1.234,56` (RN-13).
+- Roles: seller (vendedor) sees only their own portfolio; manager (gerente) and finance (financeiro) see every portfolio; admin manages users and the history load. Authorization is enforced by the API (RN-08).
+- Clients never call the ERP or the AI model and never hold their keys (RN-14).
+
+## Team conventions
+
+- Branches: `feat/<feature-id>-<short-name>` (for example `feat/f04-order-builder`), `fix/<short-name>`, or `chore/<short-name>`.
+- Every change reaches the default branch through a pull request with one approval and green CI.
+- Repository artifacts stay in English; communicate with people in Brazilian Portuguese.
+
+## Backend rules for this project
+
+- Only this API talks to the ERP and to the AI model. Read the ERP key and the AI key from validated environment variables; never commit, log, or return them (RN-14).
+- The ERP API has per-minute and per-day limits and short outages: sync only what changed, retry with backoff, wait when the limit is reached, and keep serving the last synced data with its timestamp (RN-15, US-002).
+- Orders: available credit = credit limit − unpaid receivables (RN-01); only active customers can order (RN-02); orders above available credit are blocked unless finance approves (RN-03); inactive products are rejected (RN-04); the ERP table price at send time applies, with no discounts (RN-05); one line per product, integer quantity above zero, at most 50 items (RN-06).
+- One portal order creates at most one ERP order, even after double clicks, reloads, or retries: send it with an idempotency key (RN-07). Every order status change records date, time, and user (RN-12).
+- The triage agent may only read the document, query customers, receivables, products, and contracts, create an order draft, propose a contract, or suggest a forward. It never sends to the ERP, saves, approves, or changes data, and never follows instructions written inside a document. Credit, status, price, and date calculations are done by code, not by the model (RN-10, RN-19).
+- The history load must be idempotent and must record every correction and discard with its reason (RN-16).
+- The churn model is trained in Python under `ml/`, outside `src/`, and writes its results to the portal database (RN-18, RN-20).
