@@ -1,10 +1,10 @@
 import { execFileSync } from "node:child_process";
 
-const image = "node-boilerplate:smoke";
-const migrationImage = "node-boilerplate:migration-smoke";
-const network = "node-boilerplate-smoke";
-const databaseContainer = "node-boilerplate-smoke-db";
-const apiContainer = "node-boilerplate-smoke-api";
+const image = "distrilux:smoke";
+const migrationImage = "distrilux:migration-smoke";
+const network = "distrilux-smoke";
+const databaseContainer = "distrilux-smoke-db";
+const apiContainer = "distrilux-smoke-api";
 
 function docker(args, options = {}) {
   return execFileSync("docker", args, {
@@ -43,7 +43,7 @@ try {
     "--env",
     "POSTGRES_PASSWORD=postgres",
     "--env",
-    "POSTGRES_DB=node_boilerplate",
+    "POSTGRES_DB=distrilux",
     "postgres:17-alpine",
   ]);
   for (let attempt = 0; attempt < 30; attempt += 1) {
@@ -56,7 +56,7 @@ try {
           "-U",
           "postgres",
           "-d",
-          "node_boilerplate",
+          "distrilux",
         ],
         { quiet: true },
       );
@@ -66,7 +66,7 @@ try {
       await new Promise((resolve) => setTimeout(resolve, 1_000));
     }
   }
-  const databaseUrl = `postgresql://postgres:postgres@${databaseContainer}:5432/node_boilerplate`;
+  const databaseUrl = `postgresql://postgres:postgres@${databaseContainer}:5432/distrilux`;
   docker([
     "run",
     "--rm",
