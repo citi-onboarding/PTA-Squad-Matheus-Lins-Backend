@@ -1,6 +1,6 @@
 # Churn model
 
-Python code that trains and runs the DistriLux churn-risk model (F13, US-026, RN-18, RN-20). It lives outside `src/` and is not part of the Node.js build. See ADR 0001.
+Python code that trains and runs the DistriLux churn-risk model (F26, US-026, RN-18, RN-20). It lives outside `src/` and is not part of the Node.js build. See ADR 0001.
 
 ## Contract with the API
 
@@ -10,4 +10,4 @@ Python code that trains and runs the DistriLux churn-risk model (F13, US-026, RN
 
 ## Layout
 
-To be defined by the data owner in the first F13 change: dependency file, notebooks, training script, and scoring script.
+To be defined by the data owner in the first F26 change: dependency file, notebooks, training script, and scoring script.
