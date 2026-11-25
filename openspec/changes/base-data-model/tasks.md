@@ -38,7 +38,7 @@ The suite passed 21 of 21 tests before and after refactoring the test delegates.
 ### Final verification evidence
 
 - `pnpm format:check`, `pnpm verify`, and `pnpm build` passed. Verification included typecheck, lint, 40 tests in the default suite, three architecture tests, strict OpenSpec validation (two items), and OpenAPI and skill checks.
-- `pnpm test:coverage` passed with 40 tests and 88.23% branch coverage (15 of 17) against the unchanged 85% threshold. The historical baseline result was 76.47% (13 of 17), reproduced on merge base `c0dd1e6`. The params-only middleware test that covered the two additional paths is isolated in commit `5f311d5`.
+- `pnpm test:coverage` passed with 40 tests and 88.23% branch coverage (15 of 17) against the unchanged 85% threshold. The historical baseline result was 76.47% (13 of 17), reproduced on merge base `c0dd1e6`. The params-only middleware test that covered the two additional paths is isolated in commit `fce1e21`.
 - `pnpm test:integration` applied the baseline migration to empty PostgreSQL and passed all 21 tests in the final run.
 - The task owner reported a passing Docker smoke test for the same application and migration. Docker socket access was unavailable in the final verification environment, so that gate retains its manual evidence.
 - The [change summary](../../../docs/changes/base-data-model.md) and [ADR 0002](../../../docs/adr/0002-base-data-model.md) record the completed work. The local branch is `feat/f02-base-data-model`. Pull request publication and CI review remain open.
