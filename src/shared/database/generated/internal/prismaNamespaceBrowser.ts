@@ -51,7 +51,11 @@ export const AnyNull = runtime.AnyNull
 
 
 export const ModelName = {
-  ExampleItem: 'ExampleItem'
+  User: 'User',
+  Customer: 'Customer',
+  Product: 'Product',
+  Receivable: 'Receivable',
+  SyncRun: 'SyncRun'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -70,15 +74,84 @@ export const TransactionIsolationLevel = runtime.makeStrictEnum({
 export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
 
 
-export const ExampleItemScalarFieldEnum = {
+export const UserScalarFieldEnum = {
   id: 'id',
   name: 'name',
-  description: 'description',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  email: 'email',
+  passwordHash: 'passwordHash',
+  role: 'role',
+  sellerCode: 'sellerCode',
+  createdAt: 'createdAt'
 } as const
 
-export type ExampleItemScalarFieldEnum = (typeof ExampleItemScalarFieldEnum)[keyof typeof ExampleItemScalarFieldEnum]
+export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
+
+
+export const CustomerScalarFieldEnum = {
+  id: 'id',
+  code: 'code',
+  legalName: 'legalName',
+  cnpj: 'cnpj',
+  city: 'city',
+  state: 'state',
+  segment: 'segment',
+  creditLimitCents: 'creditLimitCents',
+  sellerCode: 'sellerCode',
+  registeredAt: 'registeredAt',
+  status: 'status',
+  erpUpdatedAt: 'erpUpdatedAt',
+  syncedAt: 'syncedAt'
+} as const
+
+export type CustomerScalarFieldEnum = (typeof CustomerScalarFieldEnum)[keyof typeof CustomerScalarFieldEnum]
+
+
+export const ProductScalarFieldEnum = {
+  id: 'id',
+  code: 'code',
+  description: 'description',
+  category: 'category',
+  unit: 'unit',
+  listPriceCents: 'listPriceCents',
+  active: 'active',
+  erpUpdatedAt: 'erpUpdatedAt',
+  syncedAt: 'syncedAt'
+} as const
+
+export type ProductScalarFieldEnum = (typeof ProductScalarFieldEnum)[keyof typeof ProductScalarFieldEnum]
+
+
+export const ReceivableScalarFieldEnum = {
+  id: 'id',
+  number: 'number',
+  customerCode: 'customerCode',
+  erpOrderNumber: 'erpOrderNumber',
+  installment: 'installment',
+  amountCents: 'amountCents',
+  issuedAt: 'issuedAt',
+  dueAt: 'dueAt',
+  paidAt: 'paidAt',
+  status: 'status',
+  source: 'source',
+  erpUpdatedAt: 'erpUpdatedAt',
+  syncedAt: 'syncedAt'
+} as const
+
+export type ReceivableScalarFieldEnum = (typeof ReceivableScalarFieldEnum)[keyof typeof ReceivableScalarFieldEnum]
+
+
+export const SyncRunScalarFieldEnum = {
+  id: 'id',
+  type: 'type',
+  entity: 'entity',
+  startedAt: 'startedAt',
+  finishedAt: 'finishedAt',
+  result: 'result',
+  itemsRead: 'itemsRead',
+  error: 'error'
+} as const
+
+export type SyncRunScalarFieldEnum = (typeof SyncRunScalarFieldEnum)[keyof typeof SyncRunScalarFieldEnum]
 
 
 export const SortOrder = {
