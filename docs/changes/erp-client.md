@@ -70,19 +70,20 @@ Run on 2026-11-24 and 2026-11-25 on the developer's machine (Windows, Node 24),
 after switching the local checkout to LF line endings
 (`git config --local core.autocrlf input`; content unchanged).
 
-| Command                                    | Result                                                                                                                 |
-| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| `pnpm test`                                | 11 files, 75 tests passed                                                                                              |
-| `pnpm test:integration` (with the ERP key) | 9 passed against the real ERP (~36 s)                                                                                  |
-| `pnpm test:integration` (without the key)  | 9 skipped, as in CI                                                                                                    |
-| `pnpm test:coverage`                       | passed; 97.85% lines, 91.54% branches; `shared/erp` 100% lines                                                         |
-| `pnpm typecheck`, `pnpm lint`              | passed                                                                                                                 |
-| `pnpm test:architecture`                   | passed                                                                                                                 |
-| `openspec validate erp-client --strict`    | valid (`pnpm spec:validate`: 2 passed)                                                                                 |
-| `pnpm skills:check`                        | passed                                                                                                                 |
-| `pnpm build`                               | passed                                                                                                                 |
-| `pnpm verify`                              | passed (typecheck, lint, 75 unit tests, architecture, OpenSpec, `openapi:check`, skills)                               |
-| `pnpm format:check`                        | passed for every repository file; the only warning is the developer's untracked, non-committed `.vscode/settings.json` |
+| Command                                    | Result                                                                                                                     |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm test`                                | 11 files, 75 tests passed                                                                                                  |
+| `pnpm test:integration` (with the ERP key) | 9 passed against the real ERP (~36 s)                                                                                      |
+| `pnpm test:integration` (without the key)  | 9 skipped, as in CI                                                                                                        |
+| `pnpm test:coverage`                       | passed; 97.85% lines, 91.54% branches; `shared/erp` 100% lines                                                             |
+| `pnpm typecheck`, `pnpm lint`              | passed                                                                                                                     |
+| `pnpm test:architecture`                   | passed                                                                                                                     |
+| `openspec validate erp-client --strict`    | valid (`pnpm spec:validate`: 2 passed)                                                                                     |
+| `pnpm skills:check`                        | passed                                                                                                                     |
+| `pnpm build`                               | passed                                                                                                                     |
+| `pnpm verify`                              | passed (typecheck, lint, 75 unit tests, architecture, OpenSpec, `openapi:check`, skills)                                   |
+| `pnpm format:check`                        | passed for every repository file; the only warning is the developer's untracked, non-committed `.vscode/settings.json`     |
+| `pnpm test:container`                      | passed: image built, migrations applied, container started with `ERP_API_KEY=not-configured` and answered its health check |
 
 ## Related artifacts
 
