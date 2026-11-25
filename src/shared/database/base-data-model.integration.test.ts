@@ -6,18 +6,6 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createDatabase } from "./create-database.js";
 
-type RecordData = Record<string, unknown>;
-
-interface ModelDelegate {
-  create(args: { data: RecordData }): Promise<RecordData>;
-  findUniqueOrThrow(args: {
-    where: RecordData;
-    include?: Record<string, boolean>;
-  }): Promise<RecordData>;
-  findMany(args: { where: RecordData }): Promise<RecordData[]>;
-  update(args: { where: RecordData; data: RecordData }): Promise<RecordData>;
-}
-
 let container: Awaited<ReturnType<GenericContainer["start"]>> | undefined;
 let pool: Pool | undefined;
 let database: ReturnType<typeof createDatabase> | undefined;
@@ -102,7 +90,7 @@ function user(email: string) {
     name: "Test User",
     email,
     passwordHash: "test-hash",
-    role: "SELLER",
+    role: "SELLER" as const,
   };
 }
 
@@ -117,7 +105,7 @@ function customer(code: string, sellerCode = "seller-default") {
     creditLimitCents: amountInCents,
     sellerCode,
     registeredAt: new Date("2021-12-20T00:00:00Z"),
-    status: "ACTIVE",
+    status: "ACTIVE" as const,
     erpUpdatedAt,
   };
 }
@@ -142,20 +130,14 @@ function receivable(number: number, customerCode: string) {
     amountCents: amountInCents,
     issuedAt: new Date("2026-11-20T00:00:00Z"),
     dueAt: new Date("2026-12-20T00:00:00Z"),
-    status: "OPEN",
+    status: "OPEN" as const,
   };
 }
 
-function model(name: string): ModelDelegate {
-  // The client generated during Red does not yet expose the F02 delegates.
+function testDatabase() {
   if (!database)
     throw new Error("The integration database was not initialized");
-  const delegate: unknown = Reflect.get(database, name);
-  expect(
-    delegate,
-    `Expected Prisma Client to expose the ${name} model`,
-  ).toBeDefined();
-  return delegate as ModelDelegate;
+  return database;
 }
 
 function catalog() {
@@ -278,14 +260,17 @@ describe("F02 / US-002 base data model", () => {
   );
 
   it("persists accounts and matches the optional seller portfolio code (RN-08)", async () => {
-    const accounts = model("user");
+    const { user: accounts, customer: customers } = testDatabase();
     const seller = {
       ...user("seller@example.test"),
       sellerCode: "seller-portfolio",
     };
-    const manager = { ...user("manager@example.test"), role: "MANAGER" };
+    const manager = {
+      ...user("manager@example.test"),
+      role: "MANAGER" as const,
+    };
     const assignedCustomer = customer("C-PORTFOLIO", seller.sellerCode);
-    await model("customer").create({ data: assignedCustomer });
+    await customers.create({ data: assignedCustomer });
     await accounts.create({ data: seller });
     await accounts.create({ data: manager });
 
@@ -304,35 +289,53 @@ describe("F02 / US-002 base data model", () => {
       sellerCode: null,
     });
     expect(
-      await model("customer").findMany({
-        where: { sellerCode: storedSeller.sellerCode },
+      await customers.findMany({
+        where: { sellerCode: seller.sellerCode },
       }),
     ).toEqual([expect.objectContaining(assignedCustomer)]);
   });
 
-  it.each([
-    { name: "user", field: "email", data: user("unique@example.test") },
-    { name: "customer", field: "code", data: customer("C-UNIQUE") },
-    { name: "product", field: "code", data: product("P-UNIQUE") },
-  ])(
-    "rejects a duplicate $field on $name (RN-08, RN-09)",
-    async ({ name, field, data }) => {
-      const delegate = model(name);
-      const original = await delegate.create({ data });
-      await expect(delegate.create({ data })).rejects.toMatchObject({
-        code: "P2002",
-      });
-      expect(
-        await delegate.findUniqueOrThrow({
-          where: { [field]: original[field] },
-        }),
-      ).toEqual(original);
-    },
-  );
+  it("rejects a duplicate user email (RN-08)", async () => {
+    const accounts = testDatabase().user;
+    const data = user("unique@example.test");
+    const original = await accounts.create({ data });
+
+    await expect(accounts.create({ data })).rejects.toMatchObject({
+      code: "P2002",
+    });
+    expect(
+      await accounts.findUniqueOrThrow({ where: { email: data.email } }),
+    ).toEqual(original);
+  });
+
+  it("rejects a duplicate customer code (RN-09)", async () => {
+    const customers = testDatabase().customer;
+    const data = customer("C-UNIQUE");
+    const original = await customers.create({ data });
+
+    await expect(customers.create({ data })).rejects.toMatchObject({
+      code: "P2002",
+    });
+    expect(
+      await customers.findUniqueOrThrow({ where: { code: data.code } }),
+    ).toEqual(original);
+  });
+
+  it("rejects a duplicate product code (RN-09)", async () => {
+    const products = testDatabase().product;
+    const data = product("P-UNIQUE");
+    const original = await products.create({ data });
+
+    await expect(products.create({ data })).rejects.toMatchObject({
+      code: "P2002",
+    });
+    expect(
+      await products.findUniqueOrThrow({ where: { code: data.code } }),
+    ).toEqual(original);
+  });
 
   it("retains distinct installments for a customer and rejects a repeated title number (RN-09, RN-16)", async () => {
-    const customers = model("customer");
-    const receivables = model("receivable");
+    const { customer: customers, receivable: receivables } = testDatabase();
     const customerCode = "C-INSTALLMENTS";
     await customers.create({ data: customer(customerCode) });
     const first = { ...receivable(1001, customerCode), erpOrderNumber: 100 };
@@ -365,14 +368,16 @@ describe("F02 / US-002 base data model", () => {
 
   it("rejects a receivable for an unknown customer (RN-09)", async () => {
     await expect(
-      model("receivable").create({ data: receivable(1010, "C-UNKNOWN") }),
+      testDatabase().receivable.create({ data: receivable(1010, "C-UNKNOWN") }),
     ).rejects.toMatchObject({ code: "P2003" });
   });
 
   it("round-trips integer cents and updates portal timestamps independently of ERP timestamps (RN-13, RN-15, RN-16)", async () => {
-    const customers = model("customer");
-    const products = model("product");
-    const receivables = model("receivable");
+    const {
+      customer: customers,
+      product: products,
+      receivable: receivables,
+    } = testDatabase();
     const customerCode = "C-FRESHNESS";
     const productCode = "P-FRESHNESS";
     const number = 1020;
@@ -408,43 +413,44 @@ describe("F02 / US-002 base data model", () => {
       erpUpdatedAt: null,
     });
 
-    const changes = [
+    const customerKey = { code: customerCode };
+    const productKey = { code: productCode };
+    const receivableKey = { number };
+    const customerChange = { city: "Olinda" };
+    const productChange = { active: false };
+    const receivableChange = { status: "OVERDUE" as const };
+
+    await customers.update({ where: customerKey, data: customerChange });
+    await products.update({ where: productKey, data: productChange });
+    await receivables.update({ where: receivableKey, data: receivableChange });
+
+    const records = [
       {
-        delegate: customers,
-        where: { code: customerCode },
-        data: { city: "Olinda" },
-        original: storedCustomer,
+        actual: await customers.findUniqueOrThrow({ where: customerKey }),
+        expected: { ...storedCustomer, ...customerChange },
       },
       {
-        delegate: products,
-        where: { code: productCode },
-        data: { active: false },
-        original: storedProduct,
+        actual: await products.findUniqueOrThrow({ where: productKey }),
+        expected: { ...storedProduct, ...productChange },
       },
       {
-        delegate: receivables,
-        where: { number },
-        data: { status: "OVERDUE" },
-        original: storedReceivable,
+        actual: await receivables.findUniqueOrThrow({ where: receivableKey }),
+        expected: { ...storedReceivable, ...receivableChange },
       },
     ];
-    for (const { delegate, where, data, original } of changes) {
-      await delegate.update({ where, data });
-      const updated = await delegate.findUniqueOrThrow({ where });
-      expect(updated).toMatchObject({
-        ...original,
-        ...data,
+    for (const { actual, expected } of records) {
+      expect(actual).toMatchObject({
+        ...expected,
         syncedAt: expect.any(Date),
       });
-      expect(updated.syncedAt).toBeInstanceOf(Date);
-      expect((updated.syncedAt as Date).getTime()).toBeGreaterThan(
+      expect(actual.syncedAt.getTime()).toBeGreaterThan(
         previousWrite.getTime(),
       );
     }
   });
 
   it("defaults a new run and retains its terminal result (RN-14, RN-15, RN-16)", async () => {
-    const runs = model("syncRun");
+    const runs = testDatabase().syncRun;
     const run = await runs.create({
       data: { type: "ERP_SYNC", entity: "receivables" },
     });
@@ -458,7 +464,7 @@ describe("F02 / US-002 base data model", () => {
     });
     const where = { id: run.id };
     const outcome = {
-      result: "FAILURE",
+      result: "FAILURE" as const,
       itemsRead: 2,
       finishedAt: new Date(),
       error: "ERP unavailable",
