@@ -21,9 +21,10 @@ Skip it for routine implementation details, formatting choices, or a local and r
 
 ## Index
 
-| Number                               | Title                                                                                  | Status   | Superseded by |
-| ------------------------------------ | -------------------------------------------------------------------------------------- | -------- | ------------- |
-| [0001](0001-repository-structure.md) | Three repositories from the CITi boilerplates, with the churn model inside the backend | Accepted | —             |
+| Number                                   | Title                                                                                  | Status   | Superseded by |
+| ---------------------------------------- | -------------------------------------------------------------------------------------- | -------- | ------------- |
+| [0002](0002-required-erp-credentials.md) | ERP credentials are required at startup, with placeholders in keyless local runtimes   | Accepted | —             |
+| [0001](0001-repository-structure.md)     | Three repositories from the CITi boilerplates, with the churn model inside the backend | Accepted | —             |
 
 <!--
 Add one row per ADR, newest first.
