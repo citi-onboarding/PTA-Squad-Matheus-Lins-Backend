@@ -19,7 +19,7 @@ Define the five base entities for the DistriLux portal and deliver the first Pos
 
 - Define `User`, `Customer`, `Product`, `Receivable`, `SyncRun`, and their six enums in `prisma/schema.prisma`.
 - Generate the initial base data model migration and Prisma Client.
-- Resolve the receivable identity using authenticated ERP evidence before opening the OpenSpec change.
+- Use the approved receivable identity and carry the ERP evidence into ADR 0002.
 - In consolidation, write the change summary and ADR 0002 and update the ADR index.
 
 ### Out of scope / Non-goals
@@ -31,14 +31,14 @@ Define the five base entities for the DistriLux portal and deliver the first Pos
 
 ## Rules and contract
 
-| Item       | Definition                                                                                                                                                           |
-| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Fields     | Use the field and enum definitions below. Fields are required unless marked optional with `?`.                                                                       |
-| Uniqueness | The database enforces uniqueness for `User.email`, `Customer.code`, and `Product.code`. The receivable key is pending (see [Pending decisions](#pending-decisions)). |
-| Listing    | Not applicable. The schema includes indexes for future portfolio and receivable lookups.                                                                             |
-| Update     | Prisma manages `syncedAt` on customer, product, and receivable writes using `@updatedAt`. Future synchronization and history-load upsert behavior is outside scope.  |
-| Deletion   | Not applicable.                                                                                                                                                      |
-| Errors     | The database rejects duplicate unique keys and receivables whose `customerCode` refers to a missing customer. HTTP error responses are out of scope.                 |
+| Item       | Definition                                                                                                                                                          |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Fields     | Use the field and enum definitions below. Fields are required unless marked optional with `?`.                                                                      |
+| Uniqueness | The database enforces uniqueness for `User.email`, `Customer.code`, `Product.code`, and `Receivable.number`.                                                        |
+| Listing    | Not applicable. The schema includes indexes for future portfolio and receivable lookups.                                                                            |
+| Update     | Prisma manages `syncedAt` on customer, product, and receivable writes using `@updatedAt`. Future synchronization and history-load upsert behavior is outside scope. |
+| Deletion   | Not applicable.                                                                                                                                                     |
+| Errors     | The database rejects duplicate unique keys and receivables whose `customerCode` refers to a missing customer. HTTP error responses are out of scope.                |
 
 ### Enums
 
@@ -107,7 +107,7 @@ Source endpoint `GET /v1/titulos`. Historical spreadsheets will also supply reco
 
 | Field            | Type               | Details                                                                                                |
 | ---------------- | ------------------ | ------------------------------------------------------------------------------------------------------ |
-| `number`         | `Int`              | ERP receivable number. See the pending uniqueness decision. ERP field `numero`.                        |
+| `number`         | `Int`              | ERP receivable number, `@unique`. ERP field `numero`.                                                  |
 | `customerCode`   | `String`           | ERP customer code. Add `@@index([customerCode])`. ERP field `cliente`.                                 |
 | `customer`       | `Customer`         | Required relation from `Receivable.customerCode` to `Customer.code`.                                   |
 | `erpOrderNumber` | `Int?`             | ERP order number. Historical spreadsheet entries may omit it. ERP field `pedidoErp`.                   |
@@ -139,7 +139,7 @@ Source endpoint `GET /v1/titulos`. Historical spreadsheets will also supply reco
 - [ ] Given the migrated database, when valid records are created with defaulted fields omitted, then each model receives a generated integer ID, `User.createdAt` and `SyncRun.startedAt` are set, `Receivable.source` is `ERP`, and `SyncRun` starts with `RUNNING` and zero items read.
 - [ ] Given a stored user email, customer code, or product code, when a second record of the same model uses that value, then the database rejects the duplicate.
 - [ ] Given an existing customer, when a receivable is saved with that customer's code, then the relation resolves to that customer and the receivable appears in the customer's related records. Given an unknown code, when a receivable is saved, then the database rejects it.
-- [ ] Given the approved receivable key and an existing record, when another record uses the same key, then the database rejects the duplicate. If the approved key is composite, distinct installments with the same number can coexist.
+- [ ] Given a stored receivable, when another receivable uses the same number, then the database rejects the duplicate even if its installment differs. Receivables from the same ERP order can coexist when their numbers differ.
 - [ ] Given the applied migration, when the database indexes are inspected, then indexes exist on `Customer.sellerCode` and `Receivable.customerCode`.
 - [ ] Given valid records with monetary values, when they are saved and read back, then amounts retain their exact integer cents (for example, 1,234.56 BRL is stored as `123456`) and date fields use the `DateTime` types in the contract.
 - [ ] Given an unpaid receivable from a spreadsheet, when a record is stored without an ERP order number, payment date, or ERP update time, then all three values are null and the source is `SPREADSHEET`. Given a running synchronization record, when it is stored without a finish time or an error, then both values are null.
@@ -164,10 +164,22 @@ Source endpoint `GET /v1/titulos`. Historical spreadsheets will also supply reco
 - The existing Prisma schema contains the client generator and PostgreSQL datasource. The [backend foundation specification](../../openspec/specs/backend-foundation/spec.md) covers the existing operational and HTTP behavior. [ADR 0001](../adr/0001-repository-structure.md) establishes backend ownership of ERP synchronization and the historical load.
 - [Backend repository](https://github.com/citi-onboarding/PTA-Squad-Matheus-Lins-Backend) and [ERP Swagger UI](https://pta-erp-api.onrender.com/docs/#/).
 
+### Receivable identity evidence for ADR 0002
+
+The approved identifier is `number Int @unique`. On 2026-11-25, an authenticated, unfiltered inspection of `GET /v1/titulos` traversed all 10 pages with up to 50 records per page. The API reported 467 records and the inspection covered all 467. It found 467 distinct numbers and zero duplicate numbers, and 467 distinct number/installment pairs and zero duplicate pairs.
+
+| `numero` | `pedidoErp` | `parcela` |
+| -------- | ----------- | --------- |
+| 901920   | 43888       | 1/3       |
+| 901921   | 43888       | 2/3       |
+| 901922   | 43888       | 3/3       |
+
+The example shows separate receivable numbers for three installments of one ERP order. The inspection supports the portal's database constraint using the data available on that date. A formal ERP guarantee of future uniqueness remains unverified. ADR 0002 will record this evidence, the approved key, and the ERP status mappings defined above.
+
 ### Definition of Done
 
-- [ ] Fill the task template and open the OpenSpec change after resolving the pending decision. Obtain OpenSpec instructions before writing each artifact.
-- [ ] Confirm the receivable key using authenticated ERP data in Swagger.
+- [x] Fill the task template and open the OpenSpec change after resolving the receivable identity. Obtain OpenSpec instructions before writing each artifact.
+- [x] Inspect authenticated ERP data and approve the receivable key.
 - [ ] Create the six enums and five Prisma models.
 - [ ] Run `pnpm db:migrate --name base_data_model` and inspect the tables with `pnpm db:studio`.
 - [ ] Write ADR 0002 and the summary in `docs/changes/`, and update their indexes as applicable.
@@ -175,10 +187,4 @@ Source endpoint `GET /v1/titulos`. Historical spreadsheets will also supply reco
 
 ## Pending decisions
 
-- [ ] **Receivable identity.** Determine whether ERP `numero` uniquely identifies a receivable across records or can recur across installments.
-  - Use `number @unique` if the ERP number is unique across receivables.
-  - Use `@@unique([number, installment])` if the number recurs across installments and the pair is unique.
-  - The reported Swagger request returned HTTP 401 while the team was waiting for the ERP API key. The response structure and pagination are known. Record uniqueness still requires evidence.
-  - The task owner should verify the key with the ERP requirement owner. Once authorized access is available, use Swagger's **Try it out** for `GET /v1/titulos` and compare numbers and installments across pages. Confirm the ERP uniqueness guarantee if sample data alone leaves either option unproven.
-  - Record the selected key, a sanitized ERP response example supporting it, and both ERP status-to-enum mappings in ADR 0002. The key will govern future synchronization updates and historical import deduplication. An incorrect key can overwrite installments or create duplicates.
-  - Resolve this decision before opening the OpenSpec change or starting implementation.
+None.
