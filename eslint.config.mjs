@@ -83,6 +83,7 @@ export default tseslint.config(
       "src/shared/database/generated/**",
       "tests/architecture/fixtures/**",
       "openapi.json",
+      "ml/.venv/**",
     ],
   },
 );

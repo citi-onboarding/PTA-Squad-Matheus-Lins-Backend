@@ -10,5 +10,13 @@ test-results/
 *.log
 .DS_Store
 
+# ml/: client data (CNPJs, names) and local Python environment never go to Git
+ml/data/raw/*
+!ml/data/raw/.gitkeep
+ml/.venv/
+__pycache__/
+.pytest_cache/
+.ipynb_checkpoints/
+
 # generated mirror of .agents/skills/citi-* (see scripts/check-agent-skills.mjs)
 /.claude/skills/citi-*
