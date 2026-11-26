@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execSync } from "node:child_process";
 
 import { Pool } from "pg";
 import { GenericContainer, Wait } from "testcontainers";
@@ -176,7 +176,8 @@ beforeAll(async () => {
     "Use an empty, disposable PostgreSQL database",
   ).toEqual([]);
 
-  execFileSync("pnpm", ["db:migrate:deploy"], {
+  // Run through a shell so Windows resolves pnpm.cmd.
+  execSync("pnpm db:migrate:deploy", {
     env: { ...process.env, DATABASE_URL: url },
     stdio: "inherit",
   });

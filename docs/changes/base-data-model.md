@@ -67,4 +67,5 @@ For local inspection, start PostgreSQL with `docker compose up -d postgres`, con
 
 - Prisma manages `syncedAt` via `@updatedAt` for customer, product, and receivable writes.
 - Prisma Client 7.10.1 reproduced the tracked generated files byte for byte in a temporary directory. The branch diff reports trailing whitespace only in that generated output.
+- The integration test runs `pnpm db:migrate:deploy` through a shell so Windows resolves `pnpm.cmd`. A `.gitattributes` with `* text=auto eol=lf`, matching the mobile repository, keeps checkouts on LF on every operating system, and `.gitignore` excludes `.vscode/`.
 - The change is active and awaits pull request publication and CI review.
