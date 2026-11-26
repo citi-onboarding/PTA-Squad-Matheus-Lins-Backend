@@ -181,10 +181,27 @@ starts the API. Rollback is reverting the change.
 
 ## Resolved Decisions
 
-Recorded in `docs/tasks/erp-client.md`. All five pending decisions were
-resolved by the challenge manager on 2026-11-24: P1, P3, P4, and P5 are
-reflected in D3a, D3b, D7, and the specs (P3 adds the unit test
-`src/shared/erp/erp-client.test.ts` with an injected fake `fetch`); P2 is D10.
+All five pending decisions were resolved by the challenge manager on
+2026-11-24:
+
+- **P1. Retry budget.** 4 calls in total: 1 initial call plus 3 retries.
+- **P2. Required `ERP_API_KEY` and local runtimes.** Keep it required and pass
+  a non-secret placeholder in `docker-compose.yml` and
+  `scripts/test-container.mjs` (D10).
+- **P3. Unit coverage of the client.** Add `src/shared/erp/erp-client.test.ts`
+  with an injected fake `fetch` that never calls the real ERP.
+- **P4. Network failures and non-Problem error bodies.** Retry them like a
+  server error.
+- **P5. Invalid ERP record.** A malformed page (invalid JSON, missing `dados` or
+  `totalPaginas`) is an ERP error and is retried. An invalid record neither
+  interrupts the listing nor is silently discarded: it is returned in
+  `rejected` with its `codigo`/`numero` when readable, the page, and the Zod
+  issues. The next F02 task (synchronization) stores valid records, keeps the
+  last good version of rejected ones, counts rejections in the sync run, logs
+  only code and error, and fails the run when more than 10% of an entity is
+  rejected.
+
+P1, P3, P4, and P5 are reflected in D3a, D3b, D7, and the specs; P2 is D10.
 
 ### D10. Required ERP credentials with placeholders in keyless runtimes
 

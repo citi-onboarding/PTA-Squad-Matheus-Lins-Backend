@@ -71,7 +71,7 @@ None.
   `ERP_API_KEY`; local runtimes that start the API (Docker Compose, container
   test) are affected by the new required variable.
 - **Dependencies:** none added; uses the global `fetch`, Zod 4, and Vitest.
-- **Documentation:** `.env.example`, task `docs/tasks/erp-client.md`, and the
-  change summary `docs/changes/erp-client.md`.
+- **Documentation:** `.env.example` and the change summary
+  `docs/changes/erp-client.md`.
 - **Code:** new `src/shared/erp/` (schemas, client, retry helper, tests);
   changes to `src/shared/config/env.ts` and its tests.

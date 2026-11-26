@@ -87,7 +87,6 @@ after switching the local checkout to LF line endings
 
 ## Related artifacts
 
-- Task: `docs/tasks/erp-client.md`
 - Proposal: `openspec/changes/erp-client/proposal.md`
 - Specification: `openspec/changes/erp-client/specs/erp-data-retrieval/spec.md`
 - Design: `openspec/changes/erp-client/design.md`

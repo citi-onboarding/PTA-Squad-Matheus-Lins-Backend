@@ -1,8 +1,8 @@
 ## 1. SDD
 
-- [x] 1.1 Fill in the task template at `docs/tasks/erp-client.md` (F02, US-002)
+- [x] 1.1 Fill in the task template (F02, US-002); its resolved decisions are recorded in `design.md`
 - [x] 1.2 Write `proposal.md`, `design.md`, and `specs/erp-data-retrieval/spec.md`
-- [x] 1.3 Resolve pending decisions P1, P3, P4, and P5 with the challenge manager and update the spec, design, and task file
+- [x] 1.3 Resolve pending decisions P1, P3, P4, and P5 with the challenge manager and update the spec and design
 - [x] 1.4 Run `openspec validate erp-client --strict`
 
 ## 2. Red

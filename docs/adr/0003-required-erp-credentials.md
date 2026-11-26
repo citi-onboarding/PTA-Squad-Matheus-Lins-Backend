@@ -89,7 +89,6 @@ anyone without the key from running the stack.
 ## References
 
 - OpenSpec change: `openspec/changes/erp-client/` (design pending decision P2).
-- Task: `docs/tasks/erp-client.md`.
 - Change summary: `docs/changes/erp-client.md`.
 - PRD: US-002, RN-14, RN-15.
 - Decided by the challenge manager on 2026-11-24.
