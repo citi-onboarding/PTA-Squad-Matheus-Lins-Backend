@@ -171,7 +171,7 @@ ERP status, `detail`, and `erros` — never the key, headers, or raw bodies.
 - [A Zod issue message could echo record content] → only `path` and `message`
   are kept, and Zod 4 does not include the input value in issues by default.
 - [Required `ERP_API_KEY` stops runtimes that do not define it] → those
-  runtimes pass a non-secret placeholder (D10, ADR-0002).
+  runtimes pass a non-secret placeholder (D10, ADR-0003).
 
 ## Migration Plan
 
@@ -192,7 +192,7 @@ reflected in D3a, D3b, D7, and the specs (P3 adds the unit test
 `${ERP_API_KEY:-not-configured}` (the developer's `.env` key when present) and
 `scripts/test-container.mjs` passes `ERP_API_KEY=not-configured`, both with the
 public `ERP_BASE_URL`. Recorded in
-`docs/adr/0002-required-erp-credentials.md` because it affects every runtime
+`docs/adr/0003-required-erp-credentials.md` because it affects every runtime
 that starts the API.
 
 - Rejected: optional key checked only by the future sync — contradicts the

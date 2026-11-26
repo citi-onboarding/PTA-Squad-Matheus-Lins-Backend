@@ -89,7 +89,7 @@ try {
     `DATABASE_URL=${databaseUrl}`,
     "--env",
     "CORS_ORIGINS=http://localhost:5173",
-    // Required at startup; the container test never calls the ERP (ADR-0002).
+    // Required at startup; the container test never calls the ERP (ADR-0003).
     "--env",
     "ERP_BASE_URL=https://pta-erp-api.onrender.com",
     "--env",

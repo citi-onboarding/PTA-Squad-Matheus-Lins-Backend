@@ -1,5 +1,5 @@
 ---
-title: ADR-0002
+title: ADR-0003
 status: accepted
 date: 2026-11-24
 owners: [FlavioNorberto]
@@ -8,7 +8,7 @@ supersedes: null
 superseded_by: null
 ---
 
-# 0002: ERP credentials are required at startup, with placeholders in keyless local runtimes
+# 0003: ERP credentials are required at startup, with placeholders in keyless local runtimes
 
 ## Context
 

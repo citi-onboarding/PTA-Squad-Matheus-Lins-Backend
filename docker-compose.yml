@@ -8,7 +8,7 @@ services:
       LOG_LEVEL: info
       CORS_ORIGINS: http://localhost:5173
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/distrilux?schema=public
-      # Required at startup (ADR-0002). The real key comes from the git-ignored
+      # Required at startup (ADR-0003). The real key comes from the git-ignored
       # .env when present; otherwise a non-secret placeholder is used.
       ERP_BASE_URL: ${ERP_BASE_URL:-https://pta-erp-api.onrender.com}
       ERP_API_KEY: ${ERP_API_KEY:-not-configured}

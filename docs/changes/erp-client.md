@@ -4,7 +4,7 @@ date: 2026-11-24
 status: in-progress
 owners: [FlavioNorberto]
 tags: [F02, US-002, erp, shared]
-related_adrs: [ADR-0002]
+related_adrs: [ADR-0003]
 openspec_change: openspec/changes/erp-client/
 ---
 
@@ -28,7 +28,7 @@ products, and receivables from the DistriLux ERP, so the F02 synchronization
     `listCustomers`, `listProducts`, and `listReceivables`.
 - `ERP_BASE_URL` and `ERP_API_KEY` added to the validated environment and to
   `.env.example`; `docker-compose.yml` and `scripts/test-container.mjs` pass a
-  non-secret placeholder key (ADR-0002).
+  non-secret placeholder key (ADR-0003).
 - Unit tests use fixed ERP values from `vitest.config.ts` instead of the shared
   setup file, so the real-ERP integration suite still skips without a key.
 - Refactor: the error types moved to `erp-errors.ts`, the three routes became a
@@ -58,7 +58,7 @@ products, and receivables from the DistriLux ERP, so the F02 synchronization
 
 - No HTTP endpoint, OpenAPI, or database change.
 - Every runtime that starts the API must define `ERP_BASE_URL` and
-  `ERP_API_KEY` (ADR-0002).
+  `ERP_API_KEY` (ADR-0003).
 - Against the real ERP on 2026-11-24: 120 customers, 60 products, and 456
   receivables, all valid (0 rejected).
 - Deciding what to do with rejected records (keep the last good version, count
@@ -92,7 +92,7 @@ after switching the local checkout to LF line endings
 - Specification: `openspec/changes/erp-client/specs/erp-data-retrieval/spec.md`
 - Design: `openspec/changes/erp-client/design.md`
 - Tasks: `openspec/changes/erp-client/tasks.md`
-- ADR: `docs/adr/0002-required-erp-credentials.md`
+- ADR: `docs/adr/0003-required-erp-credentials.md`
 
 ## Usage
 

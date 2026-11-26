@@ -4,7 +4,7 @@ date: 2026-11-24
 owners: [FlavioNorberto]
 tags: [F02, US-002, erp, shared]
 related_specs: []
-related_adrs: [ADR-0001, ADR-0002]
+related_adrs: [ADR-0001, ADR-0003]
 ---
 
 # ERP HTTP client
@@ -140,7 +140,7 @@ proceed while it is open.
 - [x] **Required `ERP_API_KEY` and local runtimes.** Resolved by the challenge
       manager on 2026-11-24: keep it required and pass a non-secret placeholder
       in `docker-compose.yml` and `scripts/test-container.mjs`. Recorded in
-      ADR-0002.
+      ADR-0003.
 - [x] **Unit coverage of the client.** Resolved by the challenge manager on
       2026-11-24: add a unit `erp-client.test.ts` with an injected fake `fetch`
       that never calls the real ERP.

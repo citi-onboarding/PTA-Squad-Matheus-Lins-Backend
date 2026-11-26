@@ -9,7 +9,54 @@
 * 🟢 You can import this file directly.
 */
 
+export const Role = {
+  SELLER: 'SELLER',
+  MANAGER: 'MANAGER',
+  FINANCE: 'FINANCE',
+  ADMIN: 'ADMIN'
+} as const
+
+export type Role = (typeof Role)[keyof typeof Role]
 
 
-// This file is empty because there are no enums in the schema.
-export {}
+export const CustomerStatus = {
+  ACTIVE: 'ACTIVE',
+  BLOCKED: 'BLOCKED',
+  INACTIVE: 'INACTIVE'
+} as const
+
+export type CustomerStatus = (typeof CustomerStatus)[keyof typeof CustomerStatus]
+
+
+export const ReceivableStatus = {
+  PAID: 'PAID',
+  OPEN: 'OPEN',
+  OVERDUE: 'OVERDUE'
+} as const
+
+export type ReceivableStatus = (typeof ReceivableStatus)[keyof typeof ReceivableStatus]
+
+
+export const ReceivableSource = {
+  ERP: 'ERP',
+  SPREADSHEET: 'SPREADSHEET'
+} as const
+
+export type ReceivableSource = (typeof ReceivableSource)[keyof typeof ReceivableSource]
+
+
+export const SyncRunType = {
+  ERP_SYNC: 'ERP_SYNC',
+  HISTORY_LOAD: 'HISTORY_LOAD'
+} as const
+
+export type SyncRunType = (typeof SyncRunType)[keyof typeof SyncRunType]
+
+
+export const SyncRunResult = {
+  RUNNING: 'RUNNING',
+  SUCCESS: 'SUCCESS',
+  FAILURE: 'FAILURE'
+} as const
+
+export type SyncRunResult = (typeof SyncRunResult)[keyof typeof SyncRunResult]

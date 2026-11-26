@@ -33,4 +33,24 @@ describe("validate", () => {
       middleware({ body: {} } as Request, {} as Response, vi.fn()),
     ).toThrow();
   });
+
+  it("parses configured params and leaves body and query unchanged", () => {
+    const request = {
+      body: { count: "2" },
+      params: { id: "5" },
+      query: { active: "true" },
+    } as unknown as Request;
+    const next = vi.fn() as NextFunction;
+
+    validate({ params: z.object({ id: z.coerce.number() }) })(
+      request,
+      {} as Response,
+      next,
+    );
+
+    expect(request.params).toEqual({ id: 5 });
+    expect(request.body).toEqual({ count: "2" });
+    expect(request.query).toEqual({ active: "true" });
+    expect(next).toHaveBeenCalledOnce();
+  });
 });
