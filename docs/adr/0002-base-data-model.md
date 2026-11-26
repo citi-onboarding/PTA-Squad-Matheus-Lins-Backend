@@ -63,7 +63,6 @@ An order can have multiple installments, and historical spreadsheet rows may omi
 
 ## References
 
-- [F02 task and ERP inspection evidence](../templates/task.md#receivable-identity-evidence-for-adr-0002)
-- [Base data model design](../../openspec/changes/base-data-model/design.md)
+- [Base data model design and ERP inspection evidence](../../openspec/changes/base-data-model/design.md#use-the-erp-receivable-number-as-the-unique-key)
 - [ERP data synchronization specification](../../openspec/changes/base-data-model/specs/erp-data-synchronization/spec.md)
 - [Base data model change summary](../changes/base-data-model.md)

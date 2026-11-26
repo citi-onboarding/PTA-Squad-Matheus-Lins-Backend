@@ -1,6 +1,6 @@
 ## 1. SDD
 
-- [x] 1.1 Record the approved receivable identity and the ERP inspection evidence in the [task](../../../docs/templates/task.md) and the [design](design.md).
+- [x] 1.1 Record the approved receivable identity and the ERP inspection evidence in the [design](design.md).
 - [x] 1.2 Prepare the proposal, design, and scenario deltas for [user accounts](specs/user-accounts/spec.md) and [ERP data synchronization](specs/erp-data-synchronization/spec.md).
 - [x] 1.3 Obtain review of the specification and explicit authorization to begin Red.
 
