@@ -28,9 +28,10 @@ to date as the change evolves.
 
 ## Index
 
-| Change ID                 | Title                         | Status  | Related ADRs |
-| ------------------------- | ----------------------------- | ------- | ------------ |
-| create-backend-foundation | Create the backend foundation | shipped | —            |
+| Change ID                             | Title                         | Status      | Related ADRs                               |
+| ------------------------------------- | ----------------------------- | ----------- | ------------------------------------------ |
+| [base-data-model](base-data-model.md) | Base data model for DistriLux | in-progress | [ADR 0002](../adr/0002-base-data-model.md) |
+| create-backend-foundation             | Create the backend foundation | shipped     | —                                          |
 
 <!--
 Add one row per change doc.

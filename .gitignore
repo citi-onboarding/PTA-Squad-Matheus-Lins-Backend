@@ -9,6 +9,7 @@ openapi.generated.json
 test-results/
 *.log
 .DS_Store
+.vscode/
 
 # generated mirror of .agents/skills/citi-* (see scripts/check-agent-skills.mjs)
 /.claude/skills/citi-*
