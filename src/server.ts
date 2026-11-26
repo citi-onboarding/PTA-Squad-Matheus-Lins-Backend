@@ -7,7 +7,7 @@ import { env } from "./shared/config/env.js";
 import { createDatabase } from "./shared/database/create-database.js";
 import { createLogger } from "./shared/logging/logger.js";
 
-const database = createDatabase();
+const database = createDatabase(env.DATABASE_URL);
 const logger = createLogger(env);
 const app = createApp({ database, environment: env });
 const server = createServer(app);
