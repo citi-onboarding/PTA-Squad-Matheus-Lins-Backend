@@ -406,6 +406,21 @@ describe("createErpClient", () => {
     expect(fakeFetch).toHaveBeenCalledTimes(2);
   });
 
+  it("gives every ERP call a 60-second timeout", async () => {
+    const timeout = vi.spyOn(AbortSignal, "timeout");
+    const fakeFetch = createFakeFetch().mockResolvedValueOnce(
+      jsonResponse(page([customer("C0001")], 1, 1)),
+    );
+    const client = createErpClient({ baseUrl, apiKey, fetch: fakeFetch });
+
+    await settle(client.listCustomers());
+
+    expect(timeout).toHaveBeenCalledWith(60_000);
+    expect(requestedInit(fakeFetch, 0)?.signal).toBe(
+      timeout.mock.results[0]?.value,
+    );
+  });
+
   it("retries a timed-out call as a timeout failure", async () => {
     const fakeFetch = createFakeFetch().mockImplementation(() =>
       Promise.reject(
