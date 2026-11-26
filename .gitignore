@@ -9,6 +9,7 @@ openapi.generated.json
 test-results/
 *.log
 .DS_Store
+.vscode/
 
 # ml/: client data (CNPJs, names) and local Python environment never go to Git
 ml/data/raw/*

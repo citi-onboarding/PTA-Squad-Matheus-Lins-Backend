@@ -6,6 +6,8 @@ const validEnvironment = {
   NODE_ENV: "test",
   DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/test",
   CORS_ORIGINS: "http://localhost:5173, https://example.com ",
+  ERP_BASE_URL: "https://pta-erp-api.onrender.com",
+  ERP_API_KEY: "test-erp-key",
 };
 
 describe("parseEnvironment", () => {
@@ -25,6 +27,31 @@ describe("parseEnvironment", () => {
         ...validEnvironment,
         DATABASE_URL: "mysql://localhost/test",
       }),
+    ).toThrow();
+  });
+
+  it("exposes the ERP base URL and API key", () => {
+    const environment = parseEnvironment(validEnvironment);
+
+    expect(environment.ERP_BASE_URL).toBe("https://pta-erp-api.onrender.com");
+    expect(environment.ERP_API_KEY).toBe("test-erp-key");
+  });
+
+  it("rejects an ERP base URL that is not a URL", () => {
+    expect(() =>
+      parseEnvironment({ ...validEnvironment, ERP_BASE_URL: "not-a-url" }),
+    ).toThrow();
+  });
+
+  it("rejects a missing ERP API key", () => {
+    expect(() =>
+      parseEnvironment({ ...validEnvironment, ERP_API_KEY: undefined }),
+    ).toThrow();
+  });
+
+  it("rejects an empty ERP API key", () => {
+    expect(() =>
+      parseEnvironment({ ...validEnvironment, ERP_API_KEY: "" }),
     ).toThrow();
   });
 

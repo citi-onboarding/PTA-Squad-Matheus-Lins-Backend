@@ -1,9 +1,12 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 
-import { env } from "../config/env.js";
 import { PrismaClient } from "./generated/client.js";
 
-export function createDatabase(databaseUrl = env.DATABASE_URL): PrismaClient {
+/**
+ * Receives the connection string instead of reading the environment, so
+ * importing this module never validates unrelated variables.
+ */
+export function createDatabase(databaseUrl: string): PrismaClient {
   const adapter = new PrismaPg({ connectionString: databaseUrl });
   return new PrismaClient({ adapter });
 }

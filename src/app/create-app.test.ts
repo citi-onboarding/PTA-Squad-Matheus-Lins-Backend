@@ -12,6 +12,8 @@ const environment: Environment = {
   LOG_LEVEL: "silent",
   CORS_ORIGINS: "http://localhost:5173",
   DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/test",
+  ERP_BASE_URL: "https://pta-erp-api.onrender.com",
+  ERP_API_KEY: "test-erp-key",
   corsOrigins: ["http://localhost:5173"],
 };
 
