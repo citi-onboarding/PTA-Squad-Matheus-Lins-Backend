@@ -38,5 +38,5 @@ None.
 - **Observability:** request logs keep their current fields; the logger's existing redaction stays, and a test proves login secrets do not appear in logs.
 - **Configuration:** new `SEED_DEFAULT_PASSWORD` variable, used only by the seed and left empty in `.env.example`; new `pnpm db:seed` script.
 - **Dependencies:** none added (`node:crypto` and the existing `express-rate-limit`).
-- **Documentation:** ADR 0004 records the session format (opaque Bearer token) and the temporary mock sellers; `docs/changes/f01-auth-api.md` summarizes the change.
+- **Documentation:** ADR 0005 records the session format (opaque Bearer token) and the temporary mock sellers; `docs/changes/f01-auth-api.md` summarizes the change.
 - **Other repositories:** the web and the mobile app send `Authorization: Bearer <token>`; where they store it is recorded in the ADR as guidance.

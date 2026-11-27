@@ -1,5 +1,5 @@
 ---
-title: ADR-0004
+title: ADR-0005
 status: accepted
 date: 2026-11-26
 owners: [thiagoac07]
@@ -8,7 +8,7 @@ supersedes: null
 superseded_by: null
 ---
 
-# 0004: Opaque Bearer session tokens stored as SHA-256 hashes
+# 0005: Opaque Bearer session tokens stored as SHA-256 hashes
 
 ## Context
 

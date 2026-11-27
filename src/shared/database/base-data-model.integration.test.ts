@@ -69,6 +69,8 @@ const fieldsByModel = {
     "finishedAt:timestamp?",
     "result:SyncRunResult",
     "itemsRead:int4",
+    "itemsRejected:int4",
+    "cursorAt:timestamp?",
     "error:text?",
   ],
 };
@@ -460,6 +462,8 @@ describe("F02 / US-002 base data model", () => {
       startedAt: expect.any(Date),
       result: "RUNNING",
       itemsRead: 0,
+      itemsRejected: 0,
+      cursorAt: null,
       finishedAt: null,
       error: null,
     });

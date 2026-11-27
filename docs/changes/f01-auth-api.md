@@ -4,7 +4,7 @@ date: 2026-11-26
 status: in-progress
 owners: [thiagoac07]
 tags: [f01, us-001, rn-08, rn-14, auth]
-related_adrs: [ADR-0004]
+related_adrs: [ADR-0005]
 openspec_change: openspec/changes/f01-auth-api/
 ---
 
@@ -58,7 +58,7 @@ Let the four portal roles sign in, stay signed in through an expiring session, s
 
 - **API:** three new routes, all documented. Existing routes stay public and unchanged.
 - **Database:** additive migration only. Rollback is dropping `Session`.
-- **Clients:** the web and the mobile app send `Authorization: Bearer <token>`. ADR 0004 records where each keeps the token.
+- **Clients:** the web and the mobile app send `Authorization: Bearer <token>`. ADR 0005 records where each keeps the token.
 - **Later features:** protect routes with `requireAuth` plus `requireRole`. Portfolio filtering stays with F04.
 - **Configuration:** each environment sets its own `SEED_DEFAULT_PASSWORD` before seeding. The seed never overwrites an existing password, so changing the variable later affects only users that do not exist yet.
 - **Temporary decision:** the mock sellers replace the sellers derived from `Customer.sellerCode` until the customer sync exists (manager, 2026-11-26). They must be replaced then.
@@ -88,7 +88,7 @@ Note: `src/shared/erp/erp-client.integration.test.ts` (F02) runs only where a re
 - Specification: `openspec/changes/f01-auth-api/specs/user-authentication/spec.md`
 - Design: `openspec/changes/f01-auth-api/design.md`
 - Tasks: `openspec/changes/f01-auth-api/tasks.md`
-- ADR: [ADR 0004](../adr/0004-session-authentication.md): opaque Bearer session tokens, client token storage, and temporary mock sellers
+- ADR: [ADR 0005](../adr/0005-session-authentication.md): opaque Bearer session tokens, client token storage, and temporary mock sellers
 
 ## Usage
 

@@ -161,6 +161,8 @@ export const SyncRunScalarFieldEnum = {
   finishedAt: 'finishedAt',
   result: 'result',
   itemsRead: 'itemsRead',
+  itemsRejected: 'itemsRejected',
+  cursorAt: 'cursorAt',
   error: 'error'
 } as const
 

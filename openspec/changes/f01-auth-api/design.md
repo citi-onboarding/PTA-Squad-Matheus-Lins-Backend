@@ -23,7 +23,7 @@ See `proposal.md` for motivation and `specs/user-authentication/spec.md` for the
 
 ## Decisions
 
-### D1. Opaque Bearer token stored as a SHA-256 hash (ADR 0004)
+### D1. Opaque Bearer token stored as a SHA-256 hash (ADR 0005)
 
 Sign-in creates 32 random bytes (`crypto.randomBytes`), returns them base64url-encoded as `token`, and stores only `sha256(token)` in `Session.tokenHash`. Clients send `Authorization: Bearer <token>`.
 
@@ -89,7 +89,7 @@ A dedicated `express-rate-limit` instance (`windowMs: 60_000`, `limit: 10`, keye
 The upsert's `update` is empty, so an existing user's password, name, and role are never changed. `prisma/seed.ts` reads `SEED_DEFAULT_PASSWORD` from the environment and fails with a message naming the variable before connecting when it is missing or empty. The variable is not added to the API's `envSchema`, because the API does not use it.
 
 - **Why mock sellers:** the task derives sellers from `Customer.sellerCode`, but the customer sync does not exist, so a fresh database would have no sellers to sign in with. The `MOCK-` prefix makes them easy to find and remove.
-- **Follow-up:** once the customer sync exists, replace the mock list with one SELLER per distinct `Customer.sellerCode`, and remove or deactivate the mock sellers. This is recorded in ADR 0004 and in the change doc.
+- **Follow-up:** once the customer sync exists, replace the mock list with one SELLER per distinct `Customer.sellerCode`, and remove or deactivate the mock sellers. This is recorded in ADR 0005 and in the change doc.
 
 ### D9. Migration
 

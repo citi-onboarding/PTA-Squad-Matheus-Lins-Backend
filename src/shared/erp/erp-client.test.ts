@@ -452,3 +452,156 @@ describe("createErpClient", () => {
     ).toEqual(["1", "2", "2"]);
   });
 });
+
+describe("createErpClient getCustomer (F02 / US-002, single-customer ERP lookup)", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("returns an existing customer from its own route with the API key", async () => {
+    const fakeFetch = createFakeFetch().mockResolvedValueOnce(
+      jsonResponse(customer("C0001")),
+    );
+    const client = createErpClient({ baseUrl, apiKey, fetch: fakeFetch });
+
+    const { value, error } = await settle(client.getCustomer("C0001"));
+
+    expect(error).toBeUndefined();
+    expect(value).toEqual({ status: "found", customer: customer("C0001") });
+    expect(fakeFetch).toHaveBeenCalledTimes(1);
+    const url = requestedUrl(fakeFetch, 0);
+    expect(url.origin + url.pathname).toBe(
+      "https://erp.test/v1/clientes/C0001",
+    );
+    expect(url.search).toBe("");
+    const init = requestedInit(fakeFetch, 0);
+    expect(new Headers(init?.headers).get("X-Api-Key")).toBe(apiKey);
+    expect(init?.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("reports an unknown customer as not found after a single call", async () => {
+    const fakeFetch = createFakeFetch().mockImplementation(() =>
+      Promise.resolve(problemResponse(404)),
+    );
+    const client = createErpClient({ baseUrl, apiKey, fetch: fakeFetch });
+
+    const { value, error } = await settle(client.getCustomer("C9999"));
+
+    expect(error).toBeUndefined();
+    expect(value).toEqual({ status: "not-found" });
+    expect(fakeFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports an invalid customer with its validation issues only, without retrying", async () => {
+    const fakeFetch = createFakeFetch().mockImplementation(() =>
+      Promise.resolve(jsonResponse(customer("C0077", { status: "SUSPENSO" }))),
+    );
+    const client = createErpClient({ baseUrl, apiKey, fetch: fakeFetch });
+
+    const { value, error } = await settle(client.getCustomer("C0077"));
+
+    expect(error).toBeUndefined();
+    expect(value).toEqual({
+      status: "invalid",
+      issues: [
+        expect.objectContaining({
+          path: "status",
+          message: expect.any(String),
+        }),
+      ],
+    });
+    expect(JSON.stringify(value)).not.toContain("Customer C0077");
+    expect(fakeFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends the code as a single encoded path segment", async () => {
+    const fakeFetch = createFakeFetch().mockResolvedValueOnce(
+      problemResponse(404),
+    );
+    const client = createErpClient({ baseUrl, apiKey, fetch: fakeFetch });
+
+    await settle(client.getCustomer("C 01/../x"));
+
+    expect(fakeFetch).toHaveBeenCalledTimes(1);
+    expect(requestedUrl(fakeFetch, 0).pathname).toBe(
+      "/v1/clientes/C%2001%2F..%2Fx",
+    );
+  });
+
+  it("retries a transient failure and returns the customer", async () => {
+    const fakeFetch = createFakeFetch()
+      .mockResolvedValueOnce(problemResponse(503))
+      .mockResolvedValueOnce(jsonResponse(customer("C0001")));
+    const client = createErpClient({ baseUrl, apiKey, fetch: fakeFetch });
+
+    const { value } = await settle(client.getCustomer("C0001"));
+
+    expect(value).toEqual({ status: "found", customer: customer("C0001") });
+    expect(fakeFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("retries an answer that is not JSON and returns the customer", async () => {
+    const fakeFetch = createFakeFetch()
+      .mockResolvedValueOnce(new Response("<html>oops</html>", { status: 200 }))
+      .mockResolvedValueOnce(jsonResponse(customer("C0001")));
+    const client = createErpClient({ baseUrl, apiKey, fetch: fakeFetch });
+
+    const { value } = await settle(client.getCustomer("C0001"));
+
+    expect(value).toEqual({ status: "found", customer: customer("C0001") });
+    expect(fakeFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    ["not JSON", () => new Response("<html>oops</html>", { status: 200 })],
+    ["null", () => jsonResponse(null)],
+    ["an array", () => jsonResponse([customer("C0001")])],
+  ])("fails as malformed when the answer stays %s", async (_label, answer) => {
+    const fakeFetch = createFakeFetch().mockImplementation(() =>
+      Promise.resolve(answer()),
+    );
+    const client = createErpClient({ baseUrl, apiKey, fetch: fakeFetch });
+
+    const { value, error } = await settle(client.getCustomer("C0001"));
+
+    expect(value).toBeUndefined();
+    expect(error).toMatchObject({
+      name: "ErpRequestError",
+      kind: "malformed",
+    });
+    expect(fakeFetch).toHaveBeenCalledTimes(4);
+  });
+
+  it("fails with status 401 after a single call without leaking the API key", async () => {
+    const fakeFetch = createFakeFetch().mockImplementation(() =>
+      Promise.resolve(problemResponse(401)),
+    );
+    const client = createErpClient({ baseUrl, apiKey, fetch: fakeFetch });
+
+    const { error } = await settle(client.getCustomer("C0001"));
+
+    expect(error).toMatchObject({ name: "ErpRequestError", status: 401 });
+    expect(fakeFetch).toHaveBeenCalledTimes(1);
+    const exposed = `${String(error)} ${JSON.stringify(error)} ${(error as Error).stack ?? ""}`;
+    expect(exposed).not.toContain(apiKey);
+  });
+
+  it("surfaces the daily limit as RateLimitedError", async () => {
+    const fakeFetch = createFakeFetch().mockImplementation(() =>
+      Promise.resolve(problemResponse(429, { "Retry-After": "3600" })),
+    );
+    const client = createErpClient({ baseUrl, apiKey, fetch: fakeFetch });
+
+    const { error } = await settle(client.getCustomer("C0001"));
+
+    expect(error).toMatchObject({
+      name: "RateLimitedError",
+      retryAfterSeconds: 3_600,
+    });
+    expect(fakeFetch).toHaveBeenCalledTimes(1);
+  });
+});

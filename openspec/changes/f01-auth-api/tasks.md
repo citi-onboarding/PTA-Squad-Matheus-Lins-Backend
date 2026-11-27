@@ -29,5 +29,5 @@
 - [x] 5.1 Regenerate `openapi.json` with `pnpm openapi:generate` and confirm it lists the three `/auth` routes
 - [x] 5.2 Run `pnpm db:seed` on the local stack and sign in with each role through `POST /auth/login` (Docker required)
 - [x] 5.3 Run `pnpm format:check`, `pnpm verify` (typecheck, lint, tests, `openspec validate --strict`), `pnpm test:coverage`, `pnpm test:integration`, `pnpm test:container`, and `pnpm build`
-- [x] 5.4 Write `docs/adr/0004-session-authentication.md` from the ADR template (session format, where the web and the app store the token, temporary mock sellers) and add it to the ADR index
+- [x] 5.4 Write `docs/adr/0005-session-authentication.md` from the ADR template (session format, where the web and the app store the token, temporary mock sellers) and add it to the ADR index
 - [x] 5.5 Write `docs/changes/f01-auth-api.md` from the change template and add it to the index
