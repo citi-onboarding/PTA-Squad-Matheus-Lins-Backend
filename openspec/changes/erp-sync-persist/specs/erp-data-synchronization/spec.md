@@ -142,6 +142,26 @@ that entity unchanged.
 - **WHEN** a run fails for any reason
 - **THEN** its error does not contain the value of the ERP key
 
+### Requirement: Internal failures are logged safely
+
+When a run fails for a reason that does not come from the ERP, such as a
+database error, the system SHALL log the failure with the entity, the error
+type, and the error code when one exists. The log MUST NOT contain the error
+message, the stack trace, the ERP key, or any record content.
+
+#### Scenario: Storage failure is logged without its message
+
+- **WHEN** storing customers fails with a database error of code `P2003` whose
+  message contains a customer's legal name
+- **THEN** one error is logged with entity `customers`, the error type, and code
+  `P2003`, and the log contains neither the legal name nor the message
+
+#### Scenario: ERP failures are not logged as internal failures
+
+- **WHEN** a run fails because the ERP keeps answering 503
+- **THEN** no internal-failure log is written; the run's error
+  `erp error: http 503` already records it
+
 ### Requirement: Rejected ERP records
 
 The system MUST NOT store an ERP record that fails validation, so the last valid

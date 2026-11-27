@@ -39,10 +39,17 @@ export interface ErpListing<T> {
   rejected: ErpRejectedRecord[];
 }
 
+/** Outcome of looking up one customer by code. */
+export type ErpCustomerLookup =
+  | { status: "found"; customer: ErpCustomer }
+  | { status: "not-found" }
+  | { status: "invalid"; issues: { path: string; message: string }[] };
+
 export interface ErpClient {
   listCustomers(options?: ErpListOptions): Promise<ErpListing<ErpCustomer>>;
   listProducts(options?: ErpListOptions): Promise<ErpListing<ErpProduct>>;
   listReceivables(options?: ErpListOptions): Promise<ErpListing<ErpReceivable>>;
+  getCustomer(code: string): Promise<ErpCustomerLookup>;
 }
 
 const PAGE_SIZE = 50;
@@ -135,11 +142,16 @@ function collectRecord<T>(
   listing.rejected.push({
     key: resource.readKey(record),
     page,
-    issues: parsed.error.issues.map((issue) => ({
-      path: issue.path.map(String).join("."),
-      message: issue.message,
-    })),
+    issues: toIssues(parsed.error),
   });
+}
+
+/** Keeps only the path and message of each Zod issue, never the input value. */
+function toIssues(error: z.ZodError): { path: string; message: string }[] {
+  return error.issues.map((issue) => ({
+    path: issue.path.map(String).join("."),
+    message: issue.message,
+  }));
 }
 
 export function createErpClient({
@@ -149,18 +161,8 @@ export function createErpClient({
 }: ErpClientDependencies): ErpClient {
   const root = baseUrl.replace(/\/+$/, "");
 
-  async function fetchPage(
-    path: string,
-    page: number,
-    updatedSince: string | undefined,
-  ): Promise<ErpPage> {
-    const url = new URL(`${root}${path}`);
-    url.searchParams.set("pagina", String(page));
-    url.searchParams.set("tamanho", String(PAGE_SIZE));
-    if (updatedSince !== undefined) {
-      url.searchParams.set("atualizadoDesde", updatedSince);
-    }
-
+  /** One authenticated ERP call; returns the parsed JSON body, or `undefined` when it is not JSON. */
+  async function request(url: URL): Promise<{ status: number; body: unknown }> {
     let response: Response;
     try {
       response = await fetchImplementation(url, {
@@ -183,11 +185,46 @@ export function createErpClient({
     } catch {
       body = undefined;
     }
+    return { status: response.status, body };
+  }
+
+  async function fetchPage(
+    path: string,
+    page: number,
+    updatedSince: string | undefined,
+  ): Promise<ErpPage> {
+    const url = new URL(`${root}${path}`);
+    url.searchParams.set("pagina", String(page));
+    url.searchParams.set("tamanho", String(PAGE_SIZE));
+    if (updatedSince !== undefined) {
+      url.searchParams.set("atualizadoDesde", updatedSince);
+    }
+
+    const { status, body } = await request(url);
     const envelope = erpPageSchema.safeParse(body);
     if (!envelope.success) {
-      throw new ErpRequestError({ kind: "malformed", status: response.status });
+      throw new ErpRequestError({ kind: "malformed", status });
     }
     return envelope.data;
+  }
+
+  async function getCustomer(code: string): Promise<ErpCustomerLookup> {
+    const url = new URL(`${root}/v1/clientes/${encodeURIComponent(code)}`);
+    let body: unknown;
+    try {
+      ({ body } = await withRetry(() => request(url)));
+    } catch (error) {
+      if (error instanceof ErpRequestError && error.status === 404) {
+        return { status: "not-found" };
+      }
+      throw error;
+    }
+
+    const parsed = erpCustomerSchema.safeParse(body);
+    if (!parsed.success) {
+      return { status: "invalid", issues: toIssues(parsed.error) };
+    }
+    return { status: "found", customer: parsed.data };
   }
 
   async function list<T>(
@@ -214,5 +251,6 @@ export function createErpClient({
     listCustomers: (options = {}) => list(customers, options),
     listProducts: (options = {}) => list(products, options),
     listReceivables: (options = {}) => list(receivables, options),
+    getCustomer,
   };
 }

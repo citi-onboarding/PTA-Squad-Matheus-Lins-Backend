@@ -54,6 +54,8 @@ See `proposal.md` (Why) for motivation and
 - `erp-sync.service.ts`: `ErpSyncService`, constructed with
   `{ erp: ErpClient, repository: ErpSyncRepository, clock: () => Date, logger }`,
   exposing `syncCustomers`, `syncProducts`, `syncReceivables`, and `syncAll`.
+  `logger` is a `SyncLogger` with only `warn` (rejected records) and `error`
+  (internal failures); pino's logger satisfies it.
 - `scripts/sync-erp.ts`: the composition root for the manual command; it builds
   the ERP client from `env`, the database, the repository, the logger, and the
   service, runs `syncAll`, prints one line per entity, disconnects, and exits
@@ -121,8 +123,11 @@ remaining entities.
 | Anything else (database, bug)               | `internal error`                        |
 
 Raw Prisma messages can include record values (for example, a constraint
-violation), so they are never stored or returned; the full error is logged by
-type and stack only, without the record.
+violation), so they are never stored, returned, or logged. An internal failure
+(the `internal error` row) is logged at `error` with
+`{ entity, errorType, errorCode }` only — no message and no stack, because a
+Node stack starts with the message. ERP failures are not logged this way: the
+run's `error` already records them.
 
 ### D5. Incremental reads and `cursorAt`
 
