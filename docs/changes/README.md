@@ -30,6 +30,7 @@ to date as the change evolves.
 
 | Change ID                                   | Title                                 | Status      | Related ADRs                                        |
 | ------------------------------------------- | ------------------------------------- | ----------- | --------------------------------------------------- |
+| [f01-auth-api](f01-auth-api.md)             | Backend authentication                | in-progress | [ADR 0004](../adr/0004-session-authentication.md)   |
 | [f11-legacy-profile](f11-legacy-profile.md) | First read of the legacy spreadsheets | in-progress | —                                                   |
 | [erp-client](erp-client.md)                 | ERP HTTP client                       | in-progress | [ADR 0003](../adr/0003-required-erp-credentials.md) |
 | [base-data-model](base-data-model.md)       | Base data model for DistriLux         | in-progress | [ADR 0002](../adr/0002-base-data-model.md)          |

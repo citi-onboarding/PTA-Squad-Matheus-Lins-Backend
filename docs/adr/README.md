@@ -23,6 +23,7 @@ Skip it for routine implementation details, formatting choices, or a local and r
 
 | Number                                   | Title                                                                                  | Status   | Superseded by |
 | ---------------------------------------- | -------------------------------------------------------------------------------------- | -------- | ------------- |
+| [0004](0004-session-authentication.md)   | Opaque Bearer session tokens stored as SHA-256 hashes                                  | Accepted | —             |
 | [0003](0003-required-erp-credentials.md) | ERP credentials are required at startup, with placeholders in keyless local runtimes   | Accepted | —             |
 | [0002](0002-base-data-model.md)          | Use the ERP receivable number as the unique key                                        | Accepted | —             |
 | [0001](0001-repository-structure.md)     | Three repositories from the CITi boilerplates, with the churn model inside the backend | Accepted | —             |

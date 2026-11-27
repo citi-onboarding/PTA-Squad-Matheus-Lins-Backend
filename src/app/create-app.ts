@@ -6,27 +6,47 @@ import express from "express";
 import type { Express } from "express";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
+import type { DestinationStream } from "pino";
 import { pinoHttp } from "pino-http";
 import swaggerUi from "swagger-ui-express";
 
+import { createPrismaAuthRepository } from "../modules/auth/auth.repository.js";
+import type { AuthRepository } from "../modules/auth/auth.repository.js";
+import { createAuthRouter } from "../modules/auth/auth.routes.js";
+import { AuthService } from "../modules/auth/auth.service.js";
 import type { Environment } from "../shared/config/env.js";
 import type { Database } from "../shared/database/create-database.js";
 import { createOpenApiDocument } from "../shared/http/openapi.js";
 import { notFoundHandler, problemHandler } from "../shared/http/problem.js";
+import { requireAuth } from "../shared/http/require-auth.js";
 import { createLogger } from "../shared/logging/logger.js";
 
 interface CreateAppOptions {
   database: Database;
   environment: Environment;
+  /** Overrides the Prisma repository, for tests without a database. */
+  authRepository?: AuthRepository;
+  /** Overrides the clock used for session expiry, for tests. */
+  now?: () => Date;
+  /** Overrides the log destination, for tests that inspect log output. */
+  logDestination?: DestinationStream;
 }
 
 export function createApp({
   database,
   environment,
+  authRepository = createPrismaAuthRepository(database),
+  now,
+  logDestination,
 }: CreateAppOptions): Express {
   const app = express();
-  const logger = createLogger(environment);
+  const logger = createLogger(environment, logDestination);
   const openApiDocument = createOpenApiDocument();
+  const authService = new AuthService({
+    repository: authRepository,
+    ...(now && { now }),
+  });
+  const authenticated = requireAuth((token) => authService.authenticate(token));
 
   app.disable("x-powered-by");
   app.use(helmet());
@@ -86,6 +106,10 @@ export function createApp({
     response.json(openApiDocument),
   );
   app.use("/docs", swaggerUi.serve, swaggerUi.setup(openApiDocument));
+  app.use(
+    "/auth",
+    createAuthRouter({ service: authService, requireAuth: authenticated }),
+  );
 
   app.use(notFoundHandler);
   app.use(problemHandler);
