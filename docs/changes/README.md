@@ -30,6 +30,7 @@ to date as the change evolves.
 
 | Change ID                                   | Title                                       | Status      | Related ADRs                                              |
 | ------------------------------------------- | ------------------------------------------- | ----------- | --------------------------------------------------------- |
+| [erp-sync-schedule](erp-sync-schedule.md)   | Schedule the ERP sync and report its status | in-progress | [ADR 0006](../adr/0006-erp-sync-scheduling.md)            |
 | [f01-auth-api](f01-auth-api.md)             | Backend authentication                      | in-progress | [ADR 0005](../adr/0005-session-authentication.md)         |
 | [erp-sync-persist](erp-sync-persist.md)     | Persist ERP data with incremental sync runs | in-progress | [ADR 0004](../adr/0004-english-names-with-erp-mapping.md) |
 | [f11-legacy-profile](f11-legacy-profile.md) | First read of the legacy spreadsheets       | in-progress | —                                                         |

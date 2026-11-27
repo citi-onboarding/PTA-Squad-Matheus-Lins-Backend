@@ -18,6 +18,7 @@ import type {
 
 /** The only log calls the service makes; pino's logger satisfies it. */
 export interface SyncLogger {
+  info(details: Record<string, unknown>, message: string): void;
   warn(details: Record<string, unknown>, message: string): void;
   error(details: Record<string, unknown>, message: string): void;
 }
@@ -35,7 +36,13 @@ export interface EntitySyncResult {
   itemsRead: number;
   itemsRejected: number;
   error: string | null;
+  /** Wait the ERP asked for when it reported its daily limit; otherwise null. */
+  retryAfterSeconds: number | null;
 }
+
+/** Outcome of a synchronization guarded by the run lock. */
+export type GuardedSyncOutcome =
+  { status: "skipped" } | { status: "completed"; results: EntitySyncResult[] };
 
 /** What reading one entity produced, before anything is written. */
 interface EntityReadOutcome {
@@ -54,6 +61,24 @@ const MARGIN_MILLISECONDS = 5 * 60_000;
 const MINIMUM_READ_FOR_REJECTION_RULE = 20;
 const SKIPPED_RECEIVABLES = "skipped: customers sync failed";
 const INTERNAL_ERROR = "internal error";
+/** A run still RUNNING after this long is stuck (for example, the API stopped during it). */
+const STALE_RUN_MILLISECONDS = 30 * 60_000;
+
+/**
+ * The only details of an unexpected error that may be logged: its type and
+ * code. The message and stack can carry record values (Prisma includes them).
+ */
+export function describeErrorSafely(failure: unknown): {
+  errorType: string;
+  errorCode: string | undefined;
+} {
+  const errorType = failure instanceof Error ? failure.name : typeof failure;
+  const code =
+    typeof failure === "object" && failure !== null && "code" in failure
+      ? failure.code
+      : undefined;
+  return { errorType, errorCode: typeof code === "string" ? code : undefined };
+}
 
 /** Maps any failure to a fixed, short message; never a raw error message. */
 function describeFailure(error: unknown): string {
@@ -122,6 +147,25 @@ export class ErpSyncService {
     });
   }
 
+  /** Runs `syncAll` unless another run is in progress; recovers stale runs first. */
+  async syncAllIfIdle(): Promise<GuardedSyncOutcome> {
+    const { repository, clock, logger } = this.dependencies;
+    const now = clock();
+    await repository.markStaleRuns(
+      new Date(now.getTime() - STALE_RUN_MILLISECONDS),
+      now,
+    );
+    const running = await repository.findRunningRun();
+    if (running) {
+      logger.warn(
+        { entity: running.entity, startedAt: running.startedAt.toISOString() },
+        "sync skipped: run in progress",
+      );
+      return { status: "skipped" };
+    }
+    return { status: "completed", results: await this.syncAll() };
+  }
+
   async syncAll(): Promise<EntitySyncResult[]> {
     const customers = await this.syncCustomers();
     const products = await this.syncProducts();
@@ -147,6 +191,7 @@ export class ErpSyncService {
     let itemsRejected = 0;
     let error: string | null = null;
     let cursorAt: Date | null = null;
+    let retryAfterSeconds: number | null = null;
     try {
       const outcome = await read(listOptionsSince(previousCursor));
       itemsRead = outcome.itemsRead;
@@ -162,6 +207,9 @@ export class ErpSyncService {
       }
     } catch (failure) {
       error = describeFailure(failure);
+      if (failure instanceof RateLimitedError) {
+        retryAfterSeconds = failure.retryAfterSeconds;
+      }
       if (error === INTERNAL_ERROR) this.logInternalFailure(entity, failure);
     }
 
@@ -174,7 +222,14 @@ export class ErpSyncService {
       cursorAt,
       error,
     });
-    return { entity, result, itemsRead, itemsRejected, error };
+    return {
+      entity,
+      result,
+      itemsRead,
+      itemsRejected,
+      error,
+      retryAfterSeconds,
+    };
   }
 
   /** Read outcome for a listing whose valid records are all stored as they are. */
@@ -254,22 +309,20 @@ export class ErpSyncService {
       cursorAt: null,
       error,
     });
-    return { entity, result: "FAILURE", itemsRead: 0, itemsRejected: 0, error };
+    return {
+      entity,
+      result: "FAILURE",
+      itemsRead: 0,
+      itemsRejected: 0,
+      error,
+      retryAfterSeconds: null,
+    };
   }
 
   /** Logs only the error's type and code: its message may carry record values. */
   private logInternalFailure(entity: SyncEntity, failure: unknown): void {
-    const errorType = failure instanceof Error ? failure.name : typeof failure;
-    const code =
-      typeof failure === "object" && failure !== null && "code" in failure
-        ? failure.code
-        : undefined;
     this.dependencies.logger.error(
-      {
-        entity,
-        errorType,
-        errorCode: typeof code === "string" ? code : undefined,
-      },
+      { entity, ...describeErrorSafely(failure) },
       "ERP sync failed",
     );
   }

@@ -15,6 +15,15 @@ const envSchema = z.object({
   ERP_API_KEY: z.string().min(1),
   /** Reverse proxies in front of the API, passed to Express `trust proxy`. */
   TRUST_PROXY: z.coerce.number().int().min(0).default(0),
+  /** Minutes between ERP synchronizations after a success (F02). */
+  SYNC_INTERVAL_MINUTES: z.coerce.number().int().min(5).default(60),
+  /** Minutes before the next ERP synchronization after a failure (F02). */
+  SYNC_RETRY_MINUTES: z.coerce.number().int().min(1).default(10),
+  /** `z.coerce.boolean()` would read "false" as true, so only the two words are accepted. */
+  SYNC_ENABLED: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((value) => value === "true"),
 });
 
 export type Environment = z.infer<typeof envSchema> & { corsOrigins: string[] };

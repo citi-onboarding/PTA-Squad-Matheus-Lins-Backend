@@ -22,7 +22,13 @@ const service = new ErpSyncService({
 });
 
 try {
-  const results = await service.syncAll();
+  // Honors the same lock as the API scheduler, so a manual run never overlaps it.
+  const outcome = await service.syncAllIfIdle();
+  if (outcome.status === "skipped") {
+    process.stdout.write("skipped: run in progress\n");
+    process.exitCode = 1;
+  }
+  const results = outcome.status === "completed" ? outcome.results : [];
   for (const { entity, result, itemsRead, itemsRejected, error } of results) {
     process.stdout.write(
       `${entity}: ${result} (read ${String(itemsRead)}, rejected ${String(itemsRejected)})${error ? ` — ${error}` : ""}\n`,

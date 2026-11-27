@@ -12,6 +12,9 @@ services:
       # .env when present; otherwise a non-secret placeholder is used.
       ERP_BASE_URL: ${ERP_BASE_URL:-https://pta-erp-api.onrender.com}
       ERP_API_KEY: ${ERP_API_KEY:-not-configured}
+      # Off locally: with the placeholder key every ERP sync run would fail
+      # (ADR 0006). Set SYNC_ENABLED=true in .env together with the real key.
+      SYNC_ENABLED: ${SYNC_ENABLED:-false}
     ports:
       - "3001:3001"
     depends_on:

@@ -23,6 +23,7 @@ Skip it for routine implementation details, formatting choices, or a local and r
 
 | Number                                         | Title                                                                                  | Status   | Superseded by |
 | ---------------------------------------------- | -------------------------------------------------------------------------------------- | -------- | ------------- |
+| [0006](0006-erp-sync-scheduling.md)            | The ERP synchronization runs inside the API, locked by the SyncRun table               | Accepted | —             |
 | [0005](0005-session-authentication.md)         | Opaque Bearer session tokens stored as SHA-256 hashes                                  | Accepted | —             |
 | [0004](0004-english-names-with-erp-mapping.md) | English names in the portal, with all ERP conversion in one mapper                     | Accepted | —             |
 | [0003](0003-required-erp-credentials.md)       | ERP credentials are required at startup, with placeholders in keyless local runtimes   | Accepted | —             |
