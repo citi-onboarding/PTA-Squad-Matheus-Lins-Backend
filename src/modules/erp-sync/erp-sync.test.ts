@@ -608,42 +608,63 @@ describe("F02 / US-002 rejected ERP records", () => {
 
   it("succeeds with exactly 10% rejected", async () => {
     const { erp, repository, service } = setup();
-    const valid = Array.from({ length: 9 }, (_, index) =>
+    const valid = Array.from({ length: 18 }, (_, index) =>
       erpProduct(`P${index}`),
     );
     erp.listProducts.mockResolvedValueOnce(
-      listing(valid, [rejectedRecord("P9")]),
+      listing(valid, [rejectedRecord("P18"), rejectedRecord("P19")]),
     );
 
     await service.syncProducts();
 
     expect(repository.lastRun("products")).toMatchObject({
       result: "SUCCESS",
-      itemsRead: 10,
-      itemsRejected: 1,
+      itemsRead: 20,
+      itemsRejected: 2,
     });
-    expect(repository.products.size).toBe(9);
+    expect(repository.products.size).toBe(18);
   });
 
   it("fails and stores nothing with more than 10% rejected", async () => {
     const { erp, repository, service } = setup();
     repository.products.set("P0", storedProduct("P0"));
-    const valid = Array.from({ length: 8 }, (_, index) =>
+    const valid = Array.from({ length: 17 }, (_, index) =>
       erpProduct(`P${index}`),
     );
     erp.listProducts.mockResolvedValueOnce(
-      listing(valid, [rejectedRecord("P8"), rejectedRecord("P9")]),
+      listing(valid, [
+        rejectedRecord("P17"),
+        rejectedRecord("P18"),
+        rejectedRecord("P19"),
+      ]),
     );
 
     await service.syncProducts();
 
     expect(repository.lastRun("products")).toMatchObject({
       result: "FAILURE",
-      itemsRead: 10,
-      itemsRejected: 2,
-      error: "too many rejected records: 2/10",
+      itemsRead: 20,
+      itemsRejected: 3,
+      error: "too many rejected records: 3/20",
     });
     expect([...repository.products.values()]).toEqual([storedProduct("P0")]);
+  });
+
+  it("does not fail a read of fewer than 20 records because of rejections", async () => {
+    const { erp, repository, service } = setup();
+    erp.listProducts.mockResolvedValueOnce(
+      listing([erpProduct("P0"), erpProduct("P1")], [rejectedRecord("P2")]),
+    );
+
+    await service.syncProducts();
+
+    expect(repository.lastRun("products")).toMatchObject({
+      result: "SUCCESS",
+      itemsRead: 3,
+      itemsRejected: 1,
+      error: null,
+    });
+    expect([...repository.products.keys()].sort()).toEqual(["P0", "P1"]);
   });
 
   it("succeeds when the ERP returns nothing", async () => {
@@ -743,13 +764,58 @@ describe("F02 / US-002 missing customer of a receivable", () => {
         itemsRejected: 1,
         cursorAt: previousCursor,
       });
-      expect(JSON.stringify(logger.warn.mock.calls)).toContain(reason);
-      expect(logger.warn.mock.calls[0]?.[0]).toMatchObject({
-        entity: "receivables",
-        key: 1004,
-      });
+      expect(logger.warn).toHaveBeenCalledWith(
+        { entity: "receivables", key: 1004, reason },
+        "ERP record rejected",
+      );
     },
   );
+
+  it("logs a customer returned invalid with only its code and validation errors", async () => {
+    const { erp, logger, service } = setup();
+    erp.listReceivables.mockResolvedValueOnce(
+      listing([erpReceivable(1005, { cliente: "C0077" })]),
+    );
+    erp.getCustomer.mockResolvedValueOnce({
+      status: "invalid",
+      issues: [{ path: "status", message: "Invalid option" }],
+    });
+
+    await service.syncReceivables();
+
+    expect(logger.warn).toHaveBeenCalledWith(
+      {
+        entity: "customers",
+        key: "C0077",
+        issues: [{ path: "status", message: "Invalid option" }],
+      },
+      "ERP record rejected",
+    );
+  });
+
+  it("does not fail a small receivables read for a missing customer and keeps the starting point", async () => {
+    const { erp, repository, service } = setup();
+    const previousCursor = new Date("2026-11-25T10:00:00.000Z");
+    repository.seedRun("receivables", { cursorAt: previousCursor });
+    repository.customers.set("C0001", storedCustomer("C0001"));
+    erp.listReceivables.mockResolvedValueOnce(
+      listing([
+        erpReceivable(2000),
+        erpReceivable(2001),
+        erpReceivable(1004, { cliente: "C0099" }),
+      ]),
+    );
+
+    await service.syncReceivables();
+
+    expect(repository.lastRun("receivables")).toMatchObject({
+      result: "SUCCESS",
+      itemsRead: 3,
+      itemsRejected: 1,
+      cursorAt: previousCursor,
+    });
+    expect([...repository.receivables.keys()].sort()).toEqual([2000, 2001]);
+  });
 
   it("keeps no starting point when a first run rejects a receivable for its customer", async () => {
     const { erp, repository, service } = setup();
@@ -772,14 +838,15 @@ describe("F02 / US-002 missing customer of a receivable", () => {
   it("counts missing-customer rejections toward the 10% rule", async () => {
     const { erp, repository, service } = setup();
     repository.customers.set("C0001", storedCustomer("C0001"));
-    const valid = Array.from({ length: 8 }, (_, index) =>
+    const valid = Array.from({ length: 17 }, (_, index) =>
       erpReceivable(2000 + index, { cliente: "C0001" }),
     );
     erp.listReceivables.mockResolvedValueOnce(
       listing([
         ...valid,
-        erpReceivable(1004, { cliente: "C0098" }),
-        erpReceivable(1005, { cliente: "C0099" }),
+        erpReceivable(1004, { cliente: "C0097" }),
+        erpReceivable(1005, { cliente: "C0098" }),
+        erpReceivable(1006, { cliente: "C0099" }),
       ]),
     );
 
@@ -787,8 +854,8 @@ describe("F02 / US-002 missing customer of a receivable", () => {
 
     expect(repository.lastRun("receivables")).toMatchObject({
       result: "FAILURE",
-      itemsRead: 10,
-      itemsRejected: 2,
+      itemsRead: 20,
+      itemsRejected: 3,
     });
     expect(repository.receivables.size).toBe(0);
   });

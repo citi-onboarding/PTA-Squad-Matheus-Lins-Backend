@@ -42,3 +42,10 @@
 - [x] 5.4 Write ADR 0004 (English names with ERP mapping) from `docs/templates/adr.md` and add it to `docs/adr/README.md`
 - [x] 5.5 Write `docs/changes/erp-sync-persist.md` from `docs/templates/change.md`
 - [ ] 5.6 Prepare the pull request from `feat/f02-erp-sync` with `citi-prepare-pr`
+
+## 6. Review fixes
+
+- [x] 6.1 Update the spec: the 10% rule applies only from 20 records read; a lookup answer that is not a JSON object is retried as malformed; a customer returned invalid is logged with its code and validation errors
+- [x] 6.2 Red: rewrite the 10% cases with 20 records, add the small-read case, the malformed lookup cases in `erp-client.test.ts`, and the `customer invalid` log assertion; confirm they fail
+- [x] 6.3 Green: apply the minimum in `ErpSyncService`, the malformed check in `getCustomer`, and the `customer invalid` log
+- [x] 6.4 Run `prisma format`, every gate, `pnpm test:integration`, and `pnpm sync:erp` twice; update `docs/tasks/erp-sync.md` and `docs/changes/erp-sync-persist.md`

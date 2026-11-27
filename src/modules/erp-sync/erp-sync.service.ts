@@ -50,6 +50,8 @@ interface EntityReadOutcome {
 type CustomerRejection = "customer not found" | "customer invalid";
 
 const MARGIN_MILLISECONDS = 5 * 60_000;
+/** Below this many records read, rejections never fail a run (small incremental reads). */
+const MINIMUM_READ_FOR_REJECTION_RULE = 20;
 const SKIPPED_RECEIVABLES = "skipped: customers sync failed";
 const INTERNAL_ERROR = "internal error";
 
@@ -149,7 +151,10 @@ export class ErpSyncService {
       const outcome = await read(listOptionsSince(previousCursor));
       itemsRead = outcome.itemsRead;
       itemsRejected = outcome.itemsRejected;
-      if (itemsRejected * 10 > itemsRead) {
+      if (
+        itemsRead >= MINIMUM_READ_FOR_REJECTION_RULE &&
+        itemsRejected * 10 > itemsRead
+      ) {
         error = `too many rejected records: ${String(itemsRejected)}/${String(itemsRead)}`;
       } else {
         await outcome.save();
@@ -202,13 +207,14 @@ export class ErpSyncService {
       const lookup = await erp.getCustomer(code);
       if (lookup.status === "found") {
         await repository.saveCustomers([toCustomer(lookup.customer)]);
+      } else if (lookup.status === "not-found") {
+        rejections.set(code, "customer not found");
       } else {
-        rejections.set(
-          code,
-          lookup.status === "not-found"
-            ? "customer not found"
-            : "customer invalid",
+        this.dependencies.logger.warn(
+          { entity: "customers", key: code, issues: lookup.issues },
+          "ERP record rejected",
         );
+        rejections.set(code, "customer invalid");
       }
     }
     return rejections;

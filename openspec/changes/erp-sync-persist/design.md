@@ -118,7 +118,7 @@ remaining entities.
 | `RateLimitedError`                          | `rate limited`                          |
 | `ErpRequestError` with an HTTP status       | `erp error: http <status>`              |
 | `ErpRequestError` network/timeout/malformed | `erp error: <kind>`                     |
-| More than 10% rejected                      | `too many rejected records: <n>/<read>` |
+| 20+ read and more than 10% rejected         | `too many rejected records: <n>/<read>` |
 | Customers run failed (receivables)          | `skipped: customers sync failed`        |
 | Anything else (database, bug)               | `internal error`                        |
 
@@ -148,8 +148,14 @@ next read.
 `itemsRead = items.length + rejected.length` from the ERP listing (not the ERP's
 `total`, which can differ when records change between pages). For receivables,
 missing-customer rejections are added to `rejected` before the rule is checked.
-When `itemsRejected / itemsRead > 0.10` the run fails without calling `save*`.
-With `itemsRead = 0` the rule does not apply. Each rejected record is logged at
+When `itemsRead >= 20` and `itemsRejected / itemsRead > 0.10` the run fails
+without calling `save*`. Below 20 records read the rule does not apply: rejected
+records are counted and logged, and the valid ones are stored. Incremental reads
+usually return a handful of records (22 receivables and 0 products in the second
+manual run), so without the minimum one invalid record among three would fail
+the run again on every round — a failed run keeps the starting point — and block
+every valid change of that entity beyond the 1-hour target (US-002). Each
+rejected record is logged at
 `warn` with `{ entity, key, page, issues }` — the ERP client already keeps only
 the key and Zod `path`/`message`, and Zod 4 messages do not include the input
 value.
@@ -163,8 +169,9 @@ with `erp.getCustomer(code)`:
 - `found` → the customer is mapped and saved immediately;
 - `not-found` → every receivable of that code is rejected as
   `customer not found`;
-- `invalid` → every receivable of that code is rejected as `customer invalid`
-  and the customer is not stored;
+- `invalid` → every receivable of that code is rejected as `customer invalid`,
+  the customer is not stored, and it is logged at `warn` with only
+  `{ entity: "customers", key, issues }`;
 - a thrown error (5xx after retries, network, timeout, `RateLimitedError`) stops
   the loop and fails the run before any receivable is saved.
 
@@ -181,9 +188,12 @@ The HTTP part of `fetchPage` — headers, timeout, network/timeout mapping, and
 listings and the lookup, without changing listing behavior. The lookup runs
 inside `withRetry`; a 404 is caught after `withRetry` gives up immediately (4xx
 is never retried) and becomes `not-found`. The code is encoded with
-`encodeURIComponent` as one path segment. A 200 body that fails
-`erpCustomerSchema` becomes `invalid` and is not retried, unlike a malformed
-listing page, because the body is the record itself.
+`encodeURIComponent` as one path segment. A 200 body that is not a JSON object
+(not JSON, `null`, an array, or a scalar) throws
+`ErpRequestError({ kind: "malformed" })` inside `withRetry`, so it is retried
+like a malformed listing page and, if it stays malformed, the receivables run
+fails as `erp error: malformed`. A JSON object that fails `erpCustomerSchema`
+becomes `invalid` and is not retried, because the body is the record itself.
 
 - Rejected: the module calling `GET /v1/clientes/{codigo}` itself — only
   `src/shared/erp` talks to the ERP.

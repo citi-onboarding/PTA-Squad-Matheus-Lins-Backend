@@ -166,9 +166,12 @@ message, the stack trace, the ERP key, or any record content.
 
 The system MUST NOT store an ERP record that fails validation, so the last valid
 stored version of that record stays in place. Each rejected record SHALL be
-counted in the run and logged with only its key and validation error. When more
-than 10% of the records read for an entity in a run are rejected, the run SHALL
-end as `FAILURE` and no record of that entity from the run SHALL be stored.
+counted in the run and logged with only its key and validation error. When at
+least 20 records are read for an entity in a run and more than 10% of them are
+rejected, the run SHALL end as `FAILURE` and no record of that entity from the
+run SHALL be stored. When fewer than 20 records are read, rejected records SHALL
+NOT fail the run, so a single invalid record in a small incremental read never
+blocks the valid ones.
 
 #### Scenario: One invalid record among valid ones
 
@@ -180,14 +183,20 @@ end as `FAILURE` and no record of that entity from the run SHALL be stored.
 
 #### Scenario: Exactly 10% rejected
 
-- **WHEN** the ERP returns 10 products, of which 1 is invalid
-- **THEN** the run ends as `SUCCESS` and the 9 valid products are stored
+- **WHEN** the ERP returns 20 products, of which 2 are invalid
+- **THEN** the run ends as `SUCCESS` and the 18 valid products are stored
 
 #### Scenario: More than 10% rejected
 
-- **WHEN** the ERP returns 10 products, of which 2 are invalid
-- **THEN** the run ends as `FAILURE` with 10 records read and 2 rejected, and none
-  of the 10 products is stored or changed
+- **WHEN** the ERP returns 20 products, of which 3 are invalid
+- **THEN** the run ends as `FAILURE` with 20 records read and 3 rejected, and none
+  of the 20 products is stored or changed
+
+#### Scenario: Small read with a rejected record
+
+- **WHEN** the ERP returns 3 products, of which 1 is invalid
+- **THEN** the run ends as `SUCCESS` with 3 records read and 1 rejected, and the
+  2 valid products are stored
 
 ### Requirement: Missing customer of a receivable
 
@@ -195,7 +204,8 @@ Before storing any receivable of a run, the system SHALL look up in the ERP, onc
 per code, every customer referenced by the run's receivables that is not stored,
 and store each customer the ERP returns valid. A receivable whose customer the ERP
 does not know SHALL be rejected as `customer not found`; a receivable whose
-customer the ERP returns invalid SHALL be rejected as `customer invalid`. A
+customer the ERP returns invalid SHALL be rejected as `customer invalid`, and
+that customer SHALL be logged with only its code and validation errors. A
 receivables run with any such rejection SHALL keep the previous starting point, so
 those receivables are read again. A lookup failure for any other reason SHALL end
 the receivables run as `FAILURE` before any receivable of the run is stored.
@@ -225,8 +235,9 @@ the receivables run as `FAILURE` before any receivable of the run is stored.
 - **WHEN** receivable 1005 references customer `C0077`, which is not stored, and
   the ERP returns `C0077` with an invalid field
 - **THEN** customer `C0077` is not stored, receivable 1005 is rejected as
-  `customer invalid`, the other receivables are stored, and the next receivables
-  run reads from the previous starting point
+  `customer invalid`, the other receivables are stored, the next receivables
+  run reads from the previous starting point, and the log carries `C0077` and
+  its validation errors but no other field of the customer
 
 #### Scenario: Customer lookup keeps failing
 
@@ -244,8 +255,11 @@ the receivables run as `FAILURE` before any receivable of the run is stored.
 
 The system SHALL look up one ERP customer by code with the same authentication,
 timeout, and retry policy as the ERP listings, and SHALL validate the returned
-customer before use. An ERP "not found" answer SHALL be reported as not found
-after a single call. The lookup MUST NOT expose the ERP key in any error.
+customer before use. An answer whose body is not a JSON object SHALL be treated
+as a malformed answer and retried like a malformed listing page; a JSON object
+that fails validation SHALL be reported as an invalid customer. An ERP "not
+found" answer SHALL be reported as not found after a single call. The lookup
+MUST NOT expose the ERP key in any error.
 
 #### Scenario: Existing customer
 
@@ -273,6 +287,18 @@ after a single call. The lookup MUST NOT expose the ERP key in any error.
 
 - **WHEN** the ERP answers 503 once and then returns the customer
 - **THEN** the customer is returned
+
+#### Scenario: Malformed answer is retried
+
+- **WHEN** the ERP answers once with a body that is not JSON and then returns
+  the customer
+- **THEN** the customer is returned
+
+#### Scenario: Answer stays malformed
+
+- **WHEN** the ERP keeps answering with a body that is not a JSON object
+- **THEN** the lookup fails as a malformed answer after the retries, and the
+  customer is not reported as invalid
 
 #### Scenario: Invalid key
 

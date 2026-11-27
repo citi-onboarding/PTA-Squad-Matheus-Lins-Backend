@@ -23,7 +23,7 @@ authentication exists.
   5-minute margin; read everything when there is no successful run.
 - Handle rejected ERP records: keep the last good version, count them, log only
   their key and error, and fail the entity's run, storing nothing from it, when
-  more than 10% of the records read are rejected.
+  at least 20 records are read and more than 10% of them are rejected.
 - Fetch a receivable's missing customer from the ERP once per code; reject the
   receivable as `customer not found` or `customer invalid` otherwise, and keep the
   previous starting point so it is read again. Any other lookup failure fails

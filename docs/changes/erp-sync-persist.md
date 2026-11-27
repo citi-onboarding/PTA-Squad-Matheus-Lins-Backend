@@ -31,7 +31,8 @@ second.
     `syncProducts`, `syncReceivables`, and `syncAll`; receives the ERP client,
     the repository, a clock, and a logger.
 - `src/shared/erp/erp-client.ts`: `getCustomer(code)` for
-  `GET /v1/clientes/{codigo}`, returning `found`, `not-found`, or `invalid`. The
+  `GET /v1/clientes/{codigo}`, returning `found`, `not-found`, or `invalid`; an
+  answer that is not a JSON object is retried as `malformed`. The
   HTTP call was extracted from the paginated `fetchPage` into `request`, shared by
   the listings and the lookup; listing behavior and its tests are unchanged.
 - Migration `20261127023316_sync_run_rejected_and_cursor`: adds
@@ -55,14 +56,18 @@ second.
   `cursorAt` minus 5 minutes; with no successful run, or a `null` cursor,
   everything is read. A failed run does not move the starting point.
 - Invalid ERP records are not stored (the last good version stays), are counted,
-  and are logged with only their key and validation issues. More than 10%
-  rejected ends the run as `FAILURE` and stores nothing for that entity; exactly
-  10% succeeds.
+  and are logged with only their key and validation issues. With at least 20
+  records read, more than 10% rejected ends the run as `FAILURE` and stores
+  nothing for that entity; exactly 10% succeeds. Below 20 records read,
+  rejections never fail the run, so a small incremental read with one invalid
+  record still stores the valid ones.
 - A receivable whose customer is not stored triggers one ERP lookup per customer
   code before any receivable is stored. Found customers are stored; "not found"
   and invalid customers reject the receivable as `customer not found` or
   `customer invalid`, and the run keeps the previous `cursorAt` so it is read
-  again. Any other lookup failure ends the receivables run as `FAILURE` without
+  again. An invalid customer is logged with only its code and validation errors;
+  a lookup answer that is not a JSON object is retried as malformed. Any other
+  lookup failure ends the receivables run as `FAILURE` without
   storing receivables; lookups stop at the ERP daily limit.
 - `syncAll` runs customers, products, receivables; a customers failure skips
   receivables (`skipped: customers sync failed`), a products failure does not.
@@ -109,6 +114,21 @@ request.
 | `pnpm test:container`                                                    | `2 migrations found`, both applied, `Production container smoke test passed.`                                                                                                                                                                              |
 | `openspec validate erp-sync-persist --strict`                            | `Change 'erp-sync-persist' is valid`                                                                                                                                                                                                                       |
 | `pnpm sync:erp`, twice, against the real ERP on a disposable Postgres    | run 1: `customers: SUCCESS (read 120, rejected 0)`, `products: SUCCESS (read 60, rejected 0)`, `receivables: SUCCESS (read 485, rejected 0)` → 120 / 60 / 485 rows; run 2: read 0 / 0 / 22, rows still 120 / 60 / 485                                      |
+
+Review fixes (minimum of 20 records for the 10% rule, malformed lookup retried,
+invalid customer logged), run on 2026-11-27 on the reviewer's machine (Windows,
+Docker Desktop 29.4.0):
+
+| Command                                                               | Result                                                                                                                                                                         |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Red: `vitest run` on `erp-sync.test.ts` and `erp-client.test.ts`      | `Tests 7 failed \| 63 passed (70)`, all `AssertionError`                                                                                                                       |
+| Green: same command                                                   | `Tests 70 passed (70)`; no test changed after Red                                                                                                                              |
+| `pnpm format:check`, `pnpm exec prisma format --check`                | `All matched files use Prettier code style!`; `All files are formatted correctly!`                                                                                             |
+| `pnpm verify`                                                         | `Tests 128 passed (128)`; architecture `3 passed`; `openspec validate --all --strict` `5 passed, 0 failed`; `openapi:check` and `skills:check` passed                          |
+| `pnpm test:coverage`                                                  | `Tests 128 passed (128)`; `src/shared` `98.1 % stmts, 96.29 % branches, 97.43 % funcs, 98.03 % lines`; `erp-client.ts` 100 % lines                                             |
+| `pnpm build`                                                          | passed                                                                                                                                                                         |
+| `pnpm test:integration`                                               | repository and base data model suites passed with both migrations; the real-ERP suite `10 passed`, and `listReceivables returns every record reported by the ERP` passed alone |
+| `pnpm sync:erp`, twice, against the real ERP on a disposable Postgres | run 1: read 120 / 60 / 485, rejected 0 → 120 / 60 / 485 rows; run 2: read 0 / 0 / 0 → rows still 120 / 60 / 485                                                                |
 
 **ADR evaluation:** ADR 0004 created. The change sets a durable data contract —
 the portal stores ERP data under English names, converts it in one boundary file,
@@ -157,7 +177,10 @@ logger, then call `syncAll()`.
 ERP` in `erp-client.integration.test.ts` failed once with `actual value must be
 number or bigint, received "undefined"` and passed on rerun. Its `reportedTotal`
   helper calls the ERP without retries or a status check, so a per-minute limit or
-  503 breaks it. Not changed by this change.
+  503 breaks it. Not changed by this change. The helpers `reportedTotal` and
+  `firstCustomerCode` also join `ERP_BASE_URL` and the route without removing a
+  trailing slash, unlike the client, so an `ERP_BASE_URL` ending in `/` fails
+  four of those tests; set it without the trailing slash.
 - **Docker:** `pnpm test:container` hung once while the image downloaded npm
   packages (about 28 s per request) and the Docker engine stopped answering; it
   passed after restarting the machine.

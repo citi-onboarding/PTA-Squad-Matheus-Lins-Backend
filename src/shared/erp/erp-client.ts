@@ -78,6 +78,11 @@ async function toHttpError(response: Response): Promise<ErpRequestError> {
   });
 }
 
+/** A single-record answer must be a JSON object; anything else is malformed. */
+function isJsonObject(body: unknown): body is Record<string, unknown> {
+  return typeof body === "object" && body !== null && !Array.isArray(body);
+}
+
 function isTimeout(error: unknown): boolean {
   return error instanceof Error && error.name === "TimeoutError";
 }
@@ -212,7 +217,16 @@ export function createErpClient({
     const url = new URL(`${root}/v1/clientes/${encodeURIComponent(code)}`);
     let body: unknown;
     try {
-      ({ body } = await withRetry(() => request(url)));
+      body = await withRetry(async () => {
+        const answer = await request(url);
+        if (!isJsonObject(answer.body)) {
+          throw new ErpRequestError({
+            kind: "malformed",
+            status: answer.status,
+          });
+        }
+        return answer.body;
+      });
     } catch (error) {
       if (error instanceof ErpRequestError && error.status === 404) {
         return { status: "not-found" };

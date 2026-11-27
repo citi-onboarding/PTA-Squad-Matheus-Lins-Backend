@@ -50,14 +50,17 @@ PR 1 — persist:
   `cursorAt`.
 - Rejected ERP records: invalid records are not stored, so the last good version
   stays in the database; they are counted in `itemsRejected`, and only their key
-  and validation error are logged. When more than 10% of the records read for an
-  entity are rejected (`itemsRejected / itemsRead`), the run fails and none of
-  that entity's records from the run is stored.
+  and validation error are logged. When at least 20 records are read for an
+  entity and more than 10% of them are rejected (`itemsRejected / itemsRead`),
+  the run fails and none of that entity's records from the run is stored. Below
+  20 records read, rejections never fail the run.
 - Receivables whose customer is not stored: before any receivable is stored, each
   missing customer is fetched from the ERP once per code and stored. When the ERP
   answers "not found", the receivable is rejected with `customer not found`; when
   it returns an invalid customer, the receivable is rejected with
-  `customer invalid`. When the lookup fails for any other reason (server error
+  `customer invalid` and the customer is logged with only its code and
+  validation errors. A lookup answer that is not a JSON object is retried as
+  malformed, like a listing page. When the lookup fails for any other reason (server error
   after retries, network, timeout, or the ERP daily limit), the receivables run
   fails and no receivable from the run is stored.
 - Incremental reads: `updatedSince` is the `cursorAt` of the entity's last
@@ -126,8 +129,9 @@ PR 1 — persist:
 - [ ] Given an ERP failure while reading an entity, when the run ends, then its `SyncRun` is `FAILURE` with a short error, the stored data is unchanged, and the error contains no API key.
 - [ ] Given the customers synchronization fails, when `syncAll` runs, then products still run, receivables are not read, and the receivables run is `FAILURE` with `skipped: customers sync failed`.
 - [ ] Given a page with one invalid record among valid ones, when the entity is synchronized, then the valid records are stored, the stored version of the invalid record is unchanged, `itemsRejected` is 1, and the log carries only its key and error.
-- [ ] Given exactly 10% of the records read are rejected, when the run ends, then it is `SUCCESS`.
-- [ ] Given more than 10% of the records read are rejected, when the run ends, then it is `FAILURE` and no record of that entity from the run is stored.
+- [ ] Given 20 records read and exactly 10% rejected, when the run ends, then it is `SUCCESS`.
+- [ ] Given 20 records read and more than 10% rejected, when the run ends, then it is `FAILURE` and no record of that entity from the run is stored.
+- [ ] Given fewer than 20 records read with a rejected one, when the run ends, then it is `SUCCESS` and the valid records are stored.
 - [ ] Given a receivable whose customer is not stored but exists in the ERP, when receivables are synchronized, then the customer is fetched once, stored, and the receivable is stored.
 - [ ] Given several receivables of the same missing customer, when receivables are synchronized, then the ERP is asked for that customer only once.
 - [ ] Given a receivable whose customer does not exist in the ERP, when receivables are synchronized, then that receivable is rejected with `customer not found`, the others are stored, and the run's `cursorAt` repeats the previous successful `cursorAt`.
@@ -231,6 +235,19 @@ Resolved on 2026-11-26:
 - [x] **`cursorAt` after `customer invalid`.** The run keeps the previous
       `cursorAt`, as with `customer not found`, because the receivable does not
       change in the ERP when its customer is fixed and would not be read again.
+
+Resolved by the manager in the PR 1 review on 2026-11-27:
+
+- [x] **Minimum sample for the 10% rule.** The rule applies only when at least
+      20 records are read for the entity in the run. Incremental reads usually
+      bring a few records, and without a minimum one invalid record among three
+      would fail the run on every round — a failed run keeps the starting point —
+      blocking every valid change of that entity beyond the 1-hour target.
+- [x] **Malformed customer lookup.** An answer that is not a JSON object is
+      retried as malformed, with the same policy as listing pages, instead of
+      becoming `customer invalid`.
+- [x] **Log of an invalid customer.** A customer returned invalid by the lookup
+      is logged with only its code and validation errors.
 
 Open — PR 1: none.
 

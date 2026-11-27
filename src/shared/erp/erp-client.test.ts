@@ -544,6 +544,38 @@ describe("createErpClient getCustomer (F02 / US-002, single-customer ERP lookup)
     expect(fakeFetch).toHaveBeenCalledTimes(2);
   });
 
+  it("retries an answer that is not JSON and returns the customer", async () => {
+    const fakeFetch = createFakeFetch()
+      .mockResolvedValueOnce(new Response("<html>oops</html>", { status: 200 }))
+      .mockResolvedValueOnce(jsonResponse(customer("C0001")));
+    const client = createErpClient({ baseUrl, apiKey, fetch: fakeFetch });
+
+    const { value } = await settle(client.getCustomer("C0001"));
+
+    expect(value).toEqual({ status: "found", customer: customer("C0001") });
+    expect(fakeFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    ["not JSON", () => new Response("<html>oops</html>", { status: 200 })],
+    ["null", () => jsonResponse(null)],
+    ["an array", () => jsonResponse([customer("C0001")])],
+  ])("fails as malformed when the answer stays %s", async (_label, answer) => {
+    const fakeFetch = createFakeFetch().mockImplementation(() =>
+      Promise.resolve(answer()),
+    );
+    const client = createErpClient({ baseUrl, apiKey, fetch: fakeFetch });
+
+    const { value, error } = await settle(client.getCustomer("C0001"));
+
+    expect(value).toBeUndefined();
+    expect(error).toMatchObject({
+      name: "ErpRequestError",
+      kind: "malformed",
+    });
+    expect(fakeFetch).toHaveBeenCalledTimes(4);
+  });
+
   it("fails with status 401 after a single call without leaking the API key", async () => {
     const fakeFetch = createFakeFetch().mockImplementation(() =>
       Promise.resolve(problemResponse(401)),
