@@ -86,7 +86,7 @@ active `erp-client` change.
 - **ERP usage:** incremental reads keep calls low; a missing customer costs one
   extra call per code and run (RN-15).
 - **Dependencies:** none added.
-- **Documentation:** task `docs/tasks/erp-sync.md`, ADR 0003 (English names with
+- **Documentation:** task `docs/tasks/erp-sync.md`, ADR 0004 (English names with
   ERP mapping), and the change summary `docs/changes/erp-sync-persist.md`.
 - **Code:** new `src/modules/erp-sync/`; `src/shared/erp/erp-client.ts` gains the
   customer lookup; `prisma/schema.prisma` and a new migration; `scripts/` and

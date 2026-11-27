@@ -4,7 +4,7 @@ date: 2026-11-26
 owners: [FlavioNorberto]
 tags: [F02, US-002, RN-09, RN-15, erp, sync]
 related_specs: [openspec/changes/erp-client/specs/erp-data-retrieval/spec.md]
-related_adrs: [ADR-0002]
+related_adrs: [ADR-0002, ADR-0003]
 ---
 
 # Synchronize with the ERP — persist, schedule, and report the last sync
@@ -75,7 +75,7 @@ PR 1 — persist:
   `SyncRun`.
 - `scripts/sync-erp.ts` and the `sync:erp` package script, which run `syncAll`
   once for manual checks.
-- ADR 0003: English names with ERP mapping.
+- ADR 0004: English names with ERP mapping.
 
 PR 2 — schedule and status:
 
@@ -87,7 +87,7 @@ PR 2 — schedule and status:
   `src/shared/config/env.ts` and `.env.example`.
 - `GET /sync/status`, with its Zod response schema and the regenerated
   `openapi.json`.
-- ADR 0004: where the scheduling runs.
+- ADR 0005: where the scheduling runs.
 
 ### Out of scope / Non-goals
 
@@ -166,7 +166,7 @@ PR 2 — schedule and status:
 - Unit tests use an in-memory repository and a fake ERP client; the repository is
   covered by `erp-sync.repository.integration.test.ts` against local Postgres. The
   ERP client's existing tests must stay green without changes.
-- No new dependency; scheduling uses the platform timer unless ADR 0004 decides
+- No new dependency; scheduling uses the platform timer unless ADR 0005 decides
   otherwise.
 - `prisma/migrations/20261125181425_base_data_model` is applied and must not be
   edited; the new `SyncRun` columns come in a new additive migration.
@@ -185,7 +185,7 @@ PR 2 — schedule and status:
   including `GET /v1/clientes/{codigo}` (200, 401, 404, 429, 503).
 - Data model: `prisma/schema.prisma` (`Customer`, `Product`, `Receivable`,
   `SyncRun`) and change `openspec/changes/base-data-model/`.
-- ADR-0002: required ERP credentials.
+- ADR-0002: ERP receivable number as the unique key and ERP status mappings; ADR-0003: required ERP credentials.
 - Depends on the tasks "Model the database in Prisma" (done), "ERP HTTP client"
   (done, PR #4), and "Back-end authentication" (pending; blocks PR 2 only).
 
@@ -240,10 +240,10 @@ Open — PR 2:
       `syncAll`; (b) one lock per entity. Owner: manager or tech lead.
 - [ ] **`SYNC_ENABLED` in local runtimes.** With the default `true`,
       `docker compose up` and `pnpm test:container` start a synchronization with
-      the placeholder key `not-configured` (ADR-0002) and record failures.
+      the placeholder key `not-configured` (ADR-0003) and record failures.
       Alternatives: (a) set `SYNC_ENABLED=false` in both; (b) keep the default
       and accept the failed runs. Owner: manager.
-- [ ] **Where the scheduling runs (ADR 0004).** Alternatives: (a) inside the API
+- [ ] **Where the scheduling runs (ADR 0005).** Alternatives: (a) inside the API
       with a timer, guarded by the `SyncRun` lock; (b) an external cron of the
       hosting platform calling `pnpm sync:erp`, with no scheduler in the API.
       Depends on where the staging environment is hosted. Owner: manager.

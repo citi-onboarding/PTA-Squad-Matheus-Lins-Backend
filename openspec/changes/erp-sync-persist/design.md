@@ -202,7 +202,7 @@ Date-only ERP values become `new Date(`${value}T00:00:00-03:00`)`; Recife has
 no daylight saving time, so the fixed offset is exact. `atualizadoEm` is parsed
 with its own offset. Status values use exhaustive `Record` maps typed from the
 Zod enums, so a new ERP status fails typecheck rather than mapping silently. The
-English names and the single mapping file are recorded in ADR 0003.
+English names and the single mapping file are recorded in ADR 0004, which builds on the status mappings of ADR 0002.
 
 ### D11. Tests
 

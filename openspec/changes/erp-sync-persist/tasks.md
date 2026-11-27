@@ -37,8 +37,8 @@
 ## 5. Consolidation
 
 - [x] 5.1 Run `pnpm sync:erp` twice against the real ERP and confirm the row counts do not change
-- [ ] 5.2 Run `pnpm format:check`, `pnpm verify`, `pnpm test:coverage`, `pnpm test:integration`, and `pnpm build`
-- [ ] 5.3 Run `openspec validate erp-sync-persist --strict`
-- [ ] 5.4 Write ADR 0003 (English names with ERP mapping) from `docs/templates/adr.md` and add it to `docs/adr/README.md`
-- [ ] 5.5 Write `docs/changes/erp-sync-persist.md` from `docs/templates/change.md`
+- [x] 5.2 Run `pnpm format:check`, `pnpm verify`, `pnpm test:coverage`, `pnpm test:integration`, and `pnpm build`
+- [x] 5.3 Run `openspec validate erp-sync-persist --strict`
+- [x] 5.4 Write ADR 0004 (English names with ERP mapping) from `docs/templates/adr.md` and add it to `docs/adr/README.md`
+- [x] 5.5 Write `docs/changes/erp-sync-persist.md` from `docs/templates/change.md`
 - [ ] 5.6 Prepare the pull request from `feat/f02-erp-sync` with `citi-prepare-pr`
