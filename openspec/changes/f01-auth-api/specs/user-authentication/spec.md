@@ -52,12 +52,23 @@ The system MUST answer an unknown email and a wrong password with the same 401 P
 
 ### Requirement: Sign-in attempts are rate limited per IP
 
-The system SHALL accept at most 10 sign-in attempts per minute from the same IP address and MUST answer further attempts in that minute with 429 Problem Details.
+The system SHALL accept at most 10 sign-in attempts per minute from the same IP address and MUST answer further attempts in that minute with 429 Problem Details whose `detail` is `"Muitas tentativas de login. Tente novamente em um minuto."`. The client IP SHALL be the address of the connection, unless the API is configured to trust a number of proxy hops (`TRUST_PROXY`, default 0); then it SHALL be read from `X-Forwarded-For` through that many hops, so users behind the hosting proxy are counted separately. Without trusted hops, `X-Forwarded-For` MUST be ignored, so a client cannot dodge the limit by sending it.
 
 #### Scenario: Eleventh attempt in a minute
 
 - **WHEN** the same IP sends 10 sign-in attempts within one minute and then an 11th
+- **THEN** the 11th response is 429 with `detail` `"Muitas tentativas de login. Tente novamente em um minuto."`
+
+#### Scenario: Forwarded address ignored without trusted proxies
+
+- **WHEN** `TRUST_PROXY` is 0 and one connection sends 10 sign-in attempts within one minute, each with a different `X-Forwarded-For`, and then an 11th
 - **THEN** the 11th response is 429
+
+#### Scenario: Users behind a trusted proxy are counted separately
+
+- **WHEN** `TRUST_PROXY` is 1, the proxy forwards 10 sign-in attempts from `203.0.113.1` within one minute, and then one from `203.0.113.2`
+- **THEN** the attempt from `203.0.113.2` is answered normally, not with 429
+- **AND** an 11th attempt from `203.0.113.1` in that minute is answered with 429
 
 ### Requirement: Signed-in users can identify themselves
 
@@ -148,14 +159,26 @@ The system MUST NOT write the password, the token, the `Authorization` header, o
 
 ### Requirement: Initial users can be seeded repeatedly
 
-The system SHALL provide a seed that creates, on `@distrilux.test` emails, one MANAGER (Fernanda Cavalcanti), one FINANCE (Sérgio Barros), one ADMIN (Lucas Moura), and three mock SELLER users with invented names and seller codes `MOCK-01`, `MOCK-02`, and `MOCK-03`, all with the initial password from `SEED_DEFAULT_PASSWORD`. Running the seed again MUST NOT duplicate users or change an existing user's password. Without `SEED_DEFAULT_PASSWORD`, the seed MUST fail without creating users. The mock sellers are temporary and SHALL be replaced by sellers derived from synced customers once the customer sync exists.
+The system SHALL provide a seed that creates, on provisional `@distrilux.test` emails (PRD 12.2), one MANAGER (Fernanda Cavalcanti), one FINANCE (Sérgio Barros), one ADMIN (Lucas Moura), and one SELLER for each distinct seller of the stored customers, all with the initial password from `SEED_DEFAULT_PASSWORD`. The ERP identifies a customer's seller by name, so each SELLER SHALL be named after that value, SHALL have it as seller code, and SHALL get an email made from it: lowercase, without accents, with words joined by dots (`Patrícia Lins` → `patricia.lins@distrilux.test`). Running the seed again MUST NOT duplicate users or change an existing user's password, and SHALL add the sellers of customers stored since the last run. Without `SEED_DEFAULT_PASSWORD`, the seed MUST fail without creating users. When no customer is stored, the seed MUST fail without creating users, with an error saying that the sellers are missing and that the customer sync (`pnpm sync:erp`) must run first.
 
-#### Scenario: Seed creates one user per role
+#### Scenario: Seed creates one user per role and one seller per customer seller
 
-- **WHEN** the seed runs on a database without users
-- **THEN** one MANAGER, one FINANCE, one ADMIN, and three SELLER users exist
-- **AND** each SELLER has a distinct seller code
+- **WHEN** the stored customers have the sellers `Patrícia Lins` (two customers) and `Marcos Viana`, and the seed runs on a database without users
+- **THEN** one MANAGER, one FINANCE, and one ADMIN exist
+- **AND** exactly two SELLER users exist: `Patrícia Lins` with seller code `Patrícia Lins` and email `patricia.lins@distrilux.test`, and `Marcos Viana` with seller code `Marcos Viana` and email `marcos.viana@distrilux.test`
 - **AND** each user can sign in with the initial password
+
+#### Scenario: Seller of a newly synced customer
+
+- **WHEN** the seed has run, a customer with the new seller `Rodrigo Albuquerque` is stored, and the seed runs again
+- **THEN** a SELLER `Rodrigo Albuquerque` is added
+- **AND** the users created before are unchanged
+
+#### Scenario: No synced customers
+
+- **WHEN** the seed runs with `SEED_DEFAULT_PASSWORD` set and no customer stored
+- **THEN** it fails with an error that says the sellers are missing and names `pnpm sync:erp`
+- **AND** no user is created
 
 #### Scenario: Seed runs twice
 

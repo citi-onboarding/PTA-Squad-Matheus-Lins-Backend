@@ -49,6 +49,9 @@ export function createApp({
   const authenticated = requireAuth((token) => authService.authenticate(token));
 
   app.disable("x-powered-by");
+  // A hop count, never `true`: only the configured proxies are trusted, so a
+  // client cannot pick its own IP through X-Forwarded-For.
+  app.set("trust proxy", environment.TRUST_PROXY);
   app.use(helmet());
   app.use(
     pinoHttp({

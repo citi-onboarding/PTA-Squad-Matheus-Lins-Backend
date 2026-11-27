@@ -55,6 +55,22 @@ describe("parseEnvironment", () => {
     ).toThrow();
   });
 
+  it("trusts no proxy unless TRUST_PROXY is set", () => {
+    expect(parseEnvironment(validEnvironment).TRUST_PROXY).toBe(0);
+    expect(
+      parseEnvironment({ ...validEnvironment, TRUST_PROXY: "1" }).TRUST_PROXY,
+    ).toBe(1);
+  });
+
+  it.each(["-1", "1.5", "yes"])(
+    "rejects TRUST_PROXY %s, which is not a hop count",
+    (value) => {
+      expect(() =>
+        parseEnvironment({ ...validEnvironment, TRUST_PROXY: value }),
+      ).toThrow();
+    },
+  );
+
   it("rejects an empty CORS allowlist", () => {
     expect(() =>
       parseEnvironment({ ...validEnvironment, CORS_ORIGINS: " , " }),

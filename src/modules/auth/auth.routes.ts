@@ -38,7 +38,7 @@ function loginRateLimit(): RequestHandler {
         new HttpProblem(
           429,
           "Too Many Requests",
-          "Too many sign-in attempts. Try again in a minute.",
+          "Muitas tentativas de login. Tente novamente em um minuto.",
         ),
       );
     },

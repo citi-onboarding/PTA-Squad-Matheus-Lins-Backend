@@ -9,15 +9,10 @@ interface InitialUser {
   sellerCode?: string;
 }
 
-/**
- * Provisional `@distrilux.test` emails until DistriLux sends the real list
- * (PRD 12.2).
- *
- * TEMPORARY (manager decision, 2026-11-26): the sellers below are invented
- * because the customer sync does not exist yet. Replace them with one SELLER
- * per distinct `Customer.sellerCode` once it does (see ADR 0004).
- */
-const INITIAL_USERS: InitialUser[] = [
+/** Provisional domain until DistriLux sends the real list (PRD 12.2). */
+const EMAIL_DOMAIN = "distrilux.test";
+
+const FIXED_USERS: InitialUser[] = [
   {
     name: "Fernanda Cavalcanti",
     email: "fernanda.cavalcanti@distrilux.test",
@@ -29,29 +24,44 @@ const INITIAL_USERS: InitialUser[] = [
     role: "FINANCE",
   },
   { name: "Lucas Moura", email: "lucas.moura@distrilux.test", role: "ADMIN" },
-  {
-    name: "Carla Nogueira",
-    email: "carla.nogueira@distrilux.test",
-    role: "SELLER",
-    sellerCode: "MOCK-01",
-  },
-  {
-    name: "Rafael Duarte",
-    email: "rafael.duarte@distrilux.test",
-    role: "SELLER",
-    sellerCode: "MOCK-02",
-  },
-  {
-    name: "Juliana Prado",
-    email: "juliana.prado@distrilux.test",
-    role: "SELLER",
-    sellerCode: "MOCK-03",
-  },
 ];
 
+/** `Patrícia Lins` → `patricia.lins@distrilux.test`. */
+function sellerEmail(name: string): string {
+  const localPart = name
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ".")
+    .replace(/^\.+|\.+$/g, "");
+  return `${localPart}@${EMAIL_DOMAIN}`;
+}
+
 /**
- * Creates the initial users. Safe to run repeatedly: it upserts by email and
- * never changes an existing user, so a changed password stays changed.
+ * One SELLER per distinct seller of the stored customers. The ERP identifies a
+ * customer's seller by name, so the name is also the seller code.
+ */
+async function sellersFromCustomers(
+  database: Database,
+): Promise<InitialUser[]> {
+  const customers = await database.customer.findMany({
+    distinct: ["sellerCode"],
+    select: { sellerCode: true },
+    orderBy: { sellerCode: "asc" },
+  });
+  return customers.map(({ sellerCode }) => ({
+    name: sellerCode,
+    email: sellerEmail(sellerCode),
+    role: "SELLER",
+    sellerCode,
+  }));
+}
+
+/**
+ * Creates the initial users: the fixed MANAGER, FINANCE, and ADMIN users and
+ * one SELLER per seller of the synced customers. Safe to run repeatedly: it
+ * upserts by email and never changes an existing user, so a changed password
+ * stays changed, and sellers of newly synced customers are added.
  */
 export async function seedInitialUsers(
   database: Database,
@@ -62,7 +72,13 @@ export async function seedInitialUsers(
       "SEED_DEFAULT_PASSWORD must be set to seed the initial users.",
     );
 
-  for (const user of INITIAL_USERS) {
+  const sellers = await sellersFromCustomers(database);
+  if (sellers.length === 0)
+    throw new Error(
+      "No sellers to create: no customer is stored. Run pnpm sync:erp before pnpm db:seed. No user was created.",
+    );
+
+  for (const user of [...FIXED_USERS, ...sellers]) {
     await database.user.upsert({
       where: { email: user.email },
       update: {},

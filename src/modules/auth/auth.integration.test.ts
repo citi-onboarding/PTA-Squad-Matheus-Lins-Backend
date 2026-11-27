@@ -34,6 +34,7 @@ function environment(): Environment {
     DATABASE_URL: databaseUrl,
     ERP_BASE_URL: "https://pta-erp-api.onrender.com",
     ERP_API_KEY: "test-erp-key",
+    TRUST_PROXY: 0,
     corsOrigins: ["http://localhost:5173"],
   };
 }
@@ -101,7 +102,41 @@ describe("F01 / US-001 session storage", () => {
   });
 });
 
+/** Stores a customer as the ERP sync would, with only the seller relevant. */
+async function storeCustomer(code: string, sellerCode: string) {
+  const customer = {
+    code,
+    legalName: `Customer ${code}`,
+    cnpj: "23775684000107",
+    city: "Recife",
+    state: "PE",
+    segment: "Construction",
+    creditLimitCents: 5_000_000,
+    sellerCode,
+    registeredAt: new Date("2021-12-20T03:00:00.000Z"),
+    status: "ACTIVE" as const,
+    erpUpdatedAt: new Date("2026-11-05T12:00:00.000Z"),
+  };
+  await testDatabase().customer.upsert({
+    where: { code },
+    create: customer,
+    update: customer,
+  });
+}
+
 describe("F01 / US-001 initial users seed", () => {
+  it("fails without synced customers, says the sellers are missing, and creates no user", async () => {
+    const db = testDatabase();
+    await db.customer.deleteMany();
+    const before = await db.user.count();
+
+    const failure = seedInitialUsers(db, INITIAL_PASSWORD);
+
+    await expect(failure).rejects.toThrow("No sellers to create");
+    await expect(failure).rejects.toThrow("pnpm sync:erp");
+    expect(await db.user.count()).toBe(before);
+  });
+
   it("fails without SEED_DEFAULT_PASSWORD and creates no user", async () => {
     const db = testDatabase();
     const before = await db.user.count();
@@ -115,8 +150,11 @@ describe("F01 / US-001 initial users seed", () => {
     expect(await db.user.count()).toBe(before);
   });
 
-  it("creates one manager, finance, and admin user and three mock sellers", async () => {
+  it("creates one manager, finance, and admin user and one seller per customer seller", async () => {
     const db = testDatabase();
+    await storeCustomer("C0001", "Patrícia Lins");
+    await storeCustomer("C0002", "Patrícia Lins");
+    await storeCustomer("C0003", "Marcos Viana");
 
     await seedInitialUsers(db, INITIAL_PASSWORD);
 
@@ -132,9 +170,19 @@ describe("F01 / US-001 initial users seed", () => {
     expect(
       seeded
         .filter((user) => user.role === "SELLER")
-        .map((user) => user.sellerCode)
-        .sort(),
-    ).toEqual(["MOCK-01", "MOCK-02", "MOCK-03"]);
+        .map(({ name, sellerCode, email }) => ({ name, sellerCode, email })),
+    ).toEqual([
+      {
+        name: "Marcos Viana",
+        sellerCode: "Marcos Viana",
+        email: "marcos.viana@distrilux.test",
+      },
+      {
+        name: "Patrícia Lins",
+        sellerCode: "Patrícia Lins",
+        email: "patricia.lins@distrilux.test",
+      },
+    ]);
     expect(seeded.map((user) => user.name)).toEqual(
       expect.arrayContaining([
         "Fernanda Cavalcanti",
@@ -151,6 +199,7 @@ describe("F01 / US-001 initial users seed", () => {
 
   it("neither duplicates users nor changes a password when run again", async () => {
     const db = testDatabase();
+    await storeCustomer("C0001", "Patrícia Lins");
     await seedInitialUsers(db, INITIAL_PASSWORD);
     const changedHash = await hashPassword("changed-by-the-user");
     await db.user.update({
@@ -169,15 +218,36 @@ describe("F01 / US-001 initial users seed", () => {
     ).toMatchObject({ passwordHash: changedHash });
   });
 
+  it("adds the seller of a newly synced customer and keeps the other users", async () => {
+    const db = testDatabase();
+    await storeCustomer("C0001", "Patrícia Lins");
+    await seedInitialUsers(db, INITIAL_PASSWORD);
+    const before = await db.user.findMany({ orderBy: { id: "asc" } });
+
+    await storeCustomer("C0004", "Rodrigo Albuquerque");
+    await seedInitialUsers(db, INITIAL_PASSWORD);
+
+    const after = await db.user.findMany({ orderBy: { id: "asc" } });
+    expect(after).toHaveLength(before.length + 1);
+    expect(after.slice(0, before.length)).toEqual(before);
+    expect(after.at(-1)).toMatchObject({
+      name: "Rodrigo Albuquerque",
+      role: "SELLER",
+      sellerCode: "Rodrigo Albuquerque",
+      email: "rodrigo.albuquerque@distrilux.test",
+    });
+  });
+
   it("lets every seeded user sign in with the initial password", async () => {
     const db = testDatabase();
+    await storeCustomer("C0001", "Patrícia Lins");
     await seedInitialUsers(db, INITIAL_PASSWORD);
     const app = createApp({ database: db, environment: environment() });
 
     for (const email of [
       "sergio.barros@distrilux.test",
       "lucas.moura@distrilux.test",
-      "carla.nogueira@distrilux.test",
+      "patricia.lins@distrilux.test",
     ]) {
       await request(app)
         .post("/auth/login")

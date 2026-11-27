@@ -9,14 +9,13 @@ The portal has four roles (seller, manager, finance, admin) and each may only se
 - Sessions that expire after 8 hours without any authenticated request. Every authenticated request extends the session.
 - Shared guards for every future route: one requires a signed-in user (401), one requires a role (403, `"Você não tem acesso a esta página"`).
 - Passwords stored only as salted scrypt hashes. Tokens stored only as SHA-256 hashes. Neither the password, the token, the `Authorization` header, nor the login body is logged (RN-14 spirit: secrets never leave the API).
-- A repeatable seed of initial users: one MANAGER (Fernanda Cavalcanti), one FINANCE (Sérgio Barros), one ADMIN (Lucas Moura), and three invented mock SELLER users, all on provisional `@distrilux.test` emails (PRD 12.2). The initial password comes from `SEED_DEFAULT_PASSWORD`; without it the seed fails.
-- **Temporary decision (manager, 2026-11-26):** the task asks for one seller per distinct `Customer.sellerCode`, but the customer sync does not exist yet. The seed therefore creates mock sellers with invented names and `MOCK-` seller codes. This must be replaced by sellers derived from synced customers once the sync exists.
+- A repeatable seed of initial users: one MANAGER (Fernanda Cavalcanti), one FINANCE (Sérgio Barros), one ADMIN (Lucas Moura), and one SELLER per distinct seller of the synced customers (`Customer.sellerCode`, which holds the seller name the ERP sends), all on provisional `@distrilux.test` emails (PRD 12.2). The initial password comes from `SEED_DEFAULT_PASSWORD`; without it, or without any synced customer, the seed fails before creating users.
+- The per-IP sign-in limit reads the client IP through a configurable number of trusted proxies (`TRUST_PROXY`, default 0), so users behind the hosting proxy are counted separately.
 
 ### Out of scope
 
 - User management by the admin (screen or route), password recovery, and password change.
 - Portfolio filtering in listings (F04).
-- Seller users derived from `Customer.sellerCode` (waits for the customer sync).
 - Login screens and token storage in the web and mobile repositories.
 
 ## Capabilities
@@ -38,5 +37,5 @@ None.
 - **Observability:** request logs keep their current fields; the logger's existing redaction stays, and a test proves login secrets do not appear in logs.
 - **Configuration:** new `SEED_DEFAULT_PASSWORD` variable, used only by the seed and left empty in `.env.example`; new `pnpm db:seed` script.
 - **Dependencies:** none added (`node:crypto` and the existing `express-rate-limit`).
-- **Documentation:** ADR 0005 records the session format (opaque Bearer token) and the temporary mock sellers; `docs/changes/f01-auth-api.md` summarizes the change.
+- **Documentation:** ADR 0005 records the session format (opaque Bearer token); `docs/changes/f01-auth-api.md` summarizes the change.
 - **Other repositories:** the web and the mobile app send `Authorization: Bearer <token>`; where they store it is recorded in the ADR as guidance.

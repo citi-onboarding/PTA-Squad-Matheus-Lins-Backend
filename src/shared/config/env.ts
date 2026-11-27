@@ -13,6 +13,8 @@ const envSchema = z.object({
   DATABASE_URL: z.url().startsWith("postgresql://"),
   ERP_BASE_URL: z.url(),
   ERP_API_KEY: z.string().min(1),
+  /** Reverse proxies in front of the API, passed to Express `trust proxy`. */
+  TRUST_PROXY: z.coerce.number().int().min(0).default(0),
 });
 
 export type Environment = z.infer<typeof envSchema> & { corsOrigins: string[] };

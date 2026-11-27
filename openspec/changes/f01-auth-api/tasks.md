@@ -29,5 +29,13 @@
 - [x] 5.1 Regenerate `openapi.json` with `pnpm openapi:generate` and confirm it lists the three `/auth` routes
 - [x] 5.2 Run `pnpm db:seed` on the local stack and sign in with each role through `POST /auth/login` (Docker required)
 - [x] 5.3 Run `pnpm format:check`, `pnpm verify` (typecheck, lint, tests, `openspec validate --strict`), `pnpm test:coverage`, `pnpm test:integration`, `pnpm test:container`, and `pnpm build`
-- [x] 5.4 Write `docs/adr/0005-session-authentication.md` from the ADR template (session format, where the web and the app store the token, temporary mock sellers) and add it to the ADR index
+- [x] 5.4 Write `docs/adr/0005-session-authentication.md` from the ADR template (session format, where the web and the app store the token) and add it to the ADR index
 - [x] 5.5 Write `docs/changes/f01-auth-api.md` from the change template and add it to the index
+
+## 6. PR review fixes (2026-11-27)
+
+- [x] 6.1 Merge `main` (F02 `erp-sync-persist`), resolve the indexes, regenerate the Prisma client, and renumber the session ADR to 0005
+- [x] 6.2 Update the spec and design: sellers from the synced customers (name as seller code, email from the name), fail without customers, `TRUST_PROXY`, and the 429 detail in Portuguese
+- [x] 6.3 Red: seed tests with synced customers, a new seller on a later run, and no customers; `TRUST_PROXY` parsing; forwarded addresses ignored with 0 and counted separately with 1; the 429 detail
+- [x] 6.4 Green: implement the seller seed, `TRUST_PROXY` in `env.ts`, `.env.example`, and `createApp`, and the 429 detail
+- [x] 6.5 Run every gate, seed after `pnpm sync:erp`, sign in with each role, and update ADR 0005 and `docs/changes/f01-auth-api.md`

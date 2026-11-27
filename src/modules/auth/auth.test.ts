@@ -23,6 +23,7 @@ const environment: Environment = {
   DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/test",
   ERP_BASE_URL: "https://pta-erp-api.onrender.com",
   ERP_API_KEY: "test-erp-key",
+  TRUST_PROXY: 0,
   corsOrigins: ["http://localhost:5173"],
 };
 
@@ -96,7 +97,10 @@ beforeAll(async () => {
   passwordHash = await hashPassword(PASSWORD);
 });
 
-function setup({ logLevel = "silent" }: { logLevel?: "silent" | "info" } = {}) {
+function setup({
+  logLevel = "silent",
+  trustProxy = 0,
+}: { logLevel?: "silent" | "info"; trustProxy?: number } = {}) {
   const repository = new InMemoryAuthRepository();
   repository.users.push(
     {
@@ -126,7 +130,11 @@ function setup({ logLevel = "silent" }: { logLevel?: "silent" | "info" } = {}) {
   });
   const app = createApp({
     database: {} as Database,
-    environment: { ...environment, LOG_LEVEL: logLevel },
+    environment: {
+      ...environment,
+      LOG_LEVEL: logLevel,
+      TRUST_PROXY: trustProxy,
+    },
     authRepository: repository,
     now: () => current,
     logDestination,
@@ -240,7 +248,39 @@ describe("F01 / US-001 POST /auth/login", () => {
     }
     const eleventh = await attempt().expect(429);
 
-    expect(eleventh.body).toMatchObject({ status: 429 });
+    expect(eleventh.body).toMatchObject({
+      status: 429,
+      detail: "Muitas tentativas de login. Tente novamente em um minuto.",
+    });
+  });
+
+  it("ignores X-Forwarded-For when no proxy is trusted", async () => {
+    const { app } = setup({ trustProxy: 0 });
+    const attempt = (index: number) =>
+      request(app)
+        .post("/auth/login")
+        .set("X-Forwarded-For", `203.0.113.${String(index)}`)
+        .send({ email: "user@x.com", password: "wrong-password" });
+
+    for (let index = 1; index <= 10; index += 1) {
+      await attempt(index).expect(401);
+    }
+    await attempt(11).expect(429);
+  });
+
+  it("counts users behind one trusted proxy separately", async () => {
+    const { app } = setup({ trustProxy: 1 });
+    const attempt = (ip: string) =>
+      request(app)
+        .post("/auth/login")
+        .set("X-Forwarded-For", ip)
+        .send({ email: "user@x.com", password: "wrong-password" });
+
+    for (let index = 0; index < 10; index += 1) {
+      await attempt("203.0.113.1").expect(401);
+    }
+    await attempt("203.0.113.2").expect(401);
+    await attempt("203.0.113.1").expect(429);
   });
 });
 
