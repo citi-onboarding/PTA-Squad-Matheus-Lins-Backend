@@ -11,7 +11,7 @@ config({ quiet: true });
 const apiKey = process.env.ERP_API_KEY ?? "";
 const baseUrl = process.env.ERP_BASE_URL ?? "https://pta-erp-api.onrender.com";
 
-type Listing = keyof ErpClient;
+type Listing = Exclude<keyof ErpClient, "getCustomer">;
 
 const routes: Record<Listing, string> = {
   listCustomers: "/v1/clientes",
@@ -27,6 +27,18 @@ async function reportedTotal(route: string): Promise<number> {
   });
   const body = (await response.json()) as { total: number };
   return body.total;
+}
+
+/** Reads only the code of the first customer the ERP lists, never the record. */
+async function firstCustomerCode(): Promise<string> {
+  const response = await fetch(`${baseUrl}/v1/clientes?pagina=1&tamanho=1`, {
+    headers: { "X-Api-Key": apiKey },
+    signal: AbortSignal.timeout(60_000),
+  });
+  const body = (await response.json()) as { dados: { codigo: string }[] };
+  const code = body.dados[0]?.codigo;
+  if (code === undefined) throw new Error("The ERP listed no customer");
+  return code;
 }
 
 describe.skipIf(!process.env.ERP_API_KEY)(
@@ -68,5 +80,20 @@ describe.skipIf(!process.env.ERP_API_KEY)(
         });
       },
     );
+
+    it("getCustomer returns an existing customer", async () => {
+      const code = await firstCustomerCode();
+
+      const result = await client.getCustomer(code);
+
+      expect(result.status).toBe("found");
+      expect(result.status === "found" && result.customer.codigo).toBe(code);
+    });
+
+    it("getCustomer reports an unknown code as not found", async () => {
+      expect(await client.getCustomer("C-DOES-NOT-EXIST-0")).toEqual({
+        status: "not-found",
+      });
+    });
   },
 );

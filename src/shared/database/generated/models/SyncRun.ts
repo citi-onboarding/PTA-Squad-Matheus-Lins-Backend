@@ -29,11 +29,13 @@ export type AggregateSyncRun = {
 export type SyncRunAvgAggregateOutputType = {
   id: number | null
   itemsRead: number | null
+  itemsRejected: number | null
 }
 
 export type SyncRunSumAggregateOutputType = {
   id: number | null
   itemsRead: number | null
+  itemsRejected: number | null
 }
 
 export type SyncRunMinAggregateOutputType = {
@@ -44,6 +46,8 @@ export type SyncRunMinAggregateOutputType = {
   finishedAt: Date | null
   result: $Enums.SyncRunResult | null
   itemsRead: number | null
+  itemsRejected: number | null
+  cursorAt: Date | null
   error: string | null
 }
 
@@ -55,6 +59,8 @@ export type SyncRunMaxAggregateOutputType = {
   finishedAt: Date | null
   result: $Enums.SyncRunResult | null
   itemsRead: number | null
+  itemsRejected: number | null
+  cursorAt: Date | null
   error: string | null
 }
 
@@ -66,6 +72,8 @@ export type SyncRunCountAggregateOutputType = {
   finishedAt: number
   result: number
   itemsRead: number
+  itemsRejected: number
+  cursorAt: number
   error: number
   _all: number
 }
@@ -74,11 +82,13 @@ export type SyncRunCountAggregateOutputType = {
 export type SyncRunAvgAggregateInputType = {
   id?: true
   itemsRead?: true
+  itemsRejected?: true
 }
 
 export type SyncRunSumAggregateInputType = {
   id?: true
   itemsRead?: true
+  itemsRejected?: true
 }
 
 export type SyncRunMinAggregateInputType = {
@@ -89,6 +99,8 @@ export type SyncRunMinAggregateInputType = {
   finishedAt?: true
   result?: true
   itemsRead?: true
+  itemsRejected?: true
+  cursorAt?: true
   error?: true
 }
 
@@ -100,6 +112,8 @@ export type SyncRunMaxAggregateInputType = {
   finishedAt?: true
   result?: true
   itemsRead?: true
+  itemsRejected?: true
+  cursorAt?: true
   error?: true
 }
 
@@ -111,6 +125,8 @@ export type SyncRunCountAggregateInputType = {
   finishedAt?: true
   result?: true
   itemsRead?: true
+  itemsRejected?: true
+  cursorAt?: true
   error?: true
   _all?: true
 }
@@ -209,6 +225,8 @@ export type SyncRunGroupByOutputType = {
   finishedAt: Date | null
   result: $Enums.SyncRunResult
   itemsRead: number
+  itemsRejected: number
+  cursorAt: Date | null
   error: string | null
   _count: SyncRunCountAggregateOutputType | null
   _avg: SyncRunAvgAggregateOutputType | null
@@ -243,6 +261,8 @@ export type SyncRunWhereInput = {
   finishedAt?: Prisma.DateTimeNullableFilter<"SyncRun"> | Date | string | null
   result?: Prisma.EnumSyncRunResultFilter<"SyncRun"> | $Enums.SyncRunResult
   itemsRead?: Prisma.IntFilter<"SyncRun"> | number
+  itemsRejected?: Prisma.IntFilter<"SyncRun"> | number
+  cursorAt?: Prisma.DateTimeNullableFilter<"SyncRun"> | Date | string | null
   error?: Prisma.StringNullableFilter<"SyncRun"> | string | null
 }
 
@@ -254,6 +274,8 @@ export type SyncRunOrderByWithRelationInput = {
   finishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   result?: Prisma.SortOrder
   itemsRead?: Prisma.SortOrder
+  itemsRejected?: Prisma.SortOrder
+  cursorAt?: Prisma.SortOrderInput | Prisma.SortOrder
   error?: Prisma.SortOrderInput | Prisma.SortOrder
 }
 
@@ -268,6 +290,8 @@ export type SyncRunWhereUniqueInput = Prisma.AtLeast<{
   finishedAt?: Prisma.DateTimeNullableFilter<"SyncRun"> | Date | string | null
   result?: Prisma.EnumSyncRunResultFilter<"SyncRun"> | $Enums.SyncRunResult
   itemsRead?: Prisma.IntFilter<"SyncRun"> | number
+  itemsRejected?: Prisma.IntFilter<"SyncRun"> | number
+  cursorAt?: Prisma.DateTimeNullableFilter<"SyncRun"> | Date | string | null
   error?: Prisma.StringNullableFilter<"SyncRun"> | string | null
 }, "id">
 
@@ -279,6 +303,8 @@ export type SyncRunOrderByWithAggregationInput = {
   finishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   result?: Prisma.SortOrder
   itemsRead?: Prisma.SortOrder
+  itemsRejected?: Prisma.SortOrder
+  cursorAt?: Prisma.SortOrderInput | Prisma.SortOrder
   error?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.SyncRunCountOrderByAggregateInput
   _avg?: Prisma.SyncRunAvgOrderByAggregateInput
@@ -298,6 +324,8 @@ export type SyncRunScalarWhereWithAggregatesInput = {
   finishedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"SyncRun"> | Date | string | null
   result?: Prisma.EnumSyncRunResultWithAggregatesFilter<"SyncRun"> | $Enums.SyncRunResult
   itemsRead?: Prisma.IntWithAggregatesFilter<"SyncRun"> | number
+  itemsRejected?: Prisma.IntWithAggregatesFilter<"SyncRun"> | number
+  cursorAt?: Prisma.DateTimeNullableWithAggregatesFilter<"SyncRun"> | Date | string | null
   error?: Prisma.StringNullableWithAggregatesFilter<"SyncRun"> | string | null
 }
 
@@ -308,6 +336,8 @@ export type SyncRunCreateInput = {
   finishedAt?: Date | string | null
   result?: $Enums.SyncRunResult
   itemsRead?: number
+  itemsRejected?: number
+  cursorAt?: Date | string | null
   error?: string | null
 }
 
@@ -319,6 +349,8 @@ export type SyncRunUncheckedCreateInput = {
   finishedAt?: Date | string | null
   result?: $Enums.SyncRunResult
   itemsRead?: number
+  itemsRejected?: number
+  cursorAt?: Date | string | null
   error?: string | null
 }
 
@@ -329,6 +361,8 @@ export type SyncRunUpdateInput = {
   finishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   result?: Prisma.EnumSyncRunResultFieldUpdateOperationsInput | $Enums.SyncRunResult
   itemsRead?: Prisma.IntFieldUpdateOperationsInput | number
+  itemsRejected?: Prisma.IntFieldUpdateOperationsInput | number
+  cursorAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
@@ -340,6 +374,8 @@ export type SyncRunUncheckedUpdateInput = {
   finishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   result?: Prisma.EnumSyncRunResultFieldUpdateOperationsInput | $Enums.SyncRunResult
   itemsRead?: Prisma.IntFieldUpdateOperationsInput | number
+  itemsRejected?: Prisma.IntFieldUpdateOperationsInput | number
+  cursorAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
@@ -351,6 +387,8 @@ export type SyncRunCreateManyInput = {
   finishedAt?: Date | string | null
   result?: $Enums.SyncRunResult
   itemsRead?: number
+  itemsRejected?: number
+  cursorAt?: Date | string | null
   error?: string | null
 }
 
@@ -361,6 +399,8 @@ export type SyncRunUpdateManyMutationInput = {
   finishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   result?: Prisma.EnumSyncRunResultFieldUpdateOperationsInput | $Enums.SyncRunResult
   itemsRead?: Prisma.IntFieldUpdateOperationsInput | number
+  itemsRejected?: Prisma.IntFieldUpdateOperationsInput | number
+  cursorAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
@@ -372,6 +412,8 @@ export type SyncRunUncheckedUpdateManyInput = {
   finishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   result?: Prisma.EnumSyncRunResultFieldUpdateOperationsInput | $Enums.SyncRunResult
   itemsRead?: Prisma.IntFieldUpdateOperationsInput | number
+  itemsRejected?: Prisma.IntFieldUpdateOperationsInput | number
+  cursorAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
@@ -383,12 +425,15 @@ export type SyncRunCountOrderByAggregateInput = {
   finishedAt?: Prisma.SortOrder
   result?: Prisma.SortOrder
   itemsRead?: Prisma.SortOrder
+  itemsRejected?: Prisma.SortOrder
+  cursorAt?: Prisma.SortOrder
   error?: Prisma.SortOrder
 }
 
 export type SyncRunAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
   itemsRead?: Prisma.SortOrder
+  itemsRejected?: Prisma.SortOrder
 }
 
 export type SyncRunMaxOrderByAggregateInput = {
@@ -399,6 +444,8 @@ export type SyncRunMaxOrderByAggregateInput = {
   finishedAt?: Prisma.SortOrder
   result?: Prisma.SortOrder
   itemsRead?: Prisma.SortOrder
+  itemsRejected?: Prisma.SortOrder
+  cursorAt?: Prisma.SortOrder
   error?: Prisma.SortOrder
 }
 
@@ -410,12 +457,15 @@ export type SyncRunMinOrderByAggregateInput = {
   finishedAt?: Prisma.SortOrder
   result?: Prisma.SortOrder
   itemsRead?: Prisma.SortOrder
+  itemsRejected?: Prisma.SortOrder
+  cursorAt?: Prisma.SortOrder
   error?: Prisma.SortOrder
 }
 
 export type SyncRunSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
   itemsRead?: Prisma.SortOrder
+  itemsRejected?: Prisma.SortOrder
 }
 
 export type EnumSyncRunTypeFieldUpdateOperationsInput = {
@@ -436,6 +486,8 @@ export type SyncRunSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   finishedAt?: boolean
   result?: boolean
   itemsRead?: boolean
+  itemsRejected?: boolean
+  cursorAt?: boolean
   error?: boolean
 }, ExtArgs["result"]["syncRun"]>
 
@@ -447,6 +499,8 @@ export type SyncRunSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   finishedAt?: boolean
   result?: boolean
   itemsRead?: boolean
+  itemsRejected?: boolean
+  cursorAt?: boolean
   error?: boolean
 }, ExtArgs["result"]["syncRun"]>
 
@@ -458,6 +512,8 @@ export type SyncRunSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   finishedAt?: boolean
   result?: boolean
   itemsRead?: boolean
+  itemsRejected?: boolean
+  cursorAt?: boolean
   error?: boolean
 }, ExtArgs["result"]["syncRun"]>
 
@@ -469,10 +525,12 @@ export type SyncRunSelectScalar = {
   finishedAt?: boolean
   result?: boolean
   itemsRead?: boolean
+  itemsRejected?: boolean
+  cursorAt?: boolean
   error?: boolean
 }
 
-export type SyncRunOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "type" | "entity" | "startedAt" | "finishedAt" | "result" | "itemsRead" | "error", ExtArgs["result"]["syncRun"]>
+export type SyncRunOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "type" | "entity" | "startedAt" | "finishedAt" | "result" | "itemsRead" | "itemsRejected" | "cursorAt" | "error", ExtArgs["result"]["syncRun"]>
 
 export type $SyncRunPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "SyncRun"
@@ -485,6 +543,8 @@ export type $SyncRunPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     finishedAt: Date | null
     result: $Enums.SyncRunResult
     itemsRead: number
+    itemsRejected: number
+    cursorAt: Date | null
     error: string | null
   }, ExtArgs["result"]["syncRun"]>
   composites: {}
@@ -916,6 +976,8 @@ export interface SyncRunFieldRefs {
   readonly finishedAt: Prisma.FieldRef<"SyncRun", 'DateTime'>
   readonly result: Prisma.FieldRef<"SyncRun", 'SyncRunResult'>
   readonly itemsRead: Prisma.FieldRef<"SyncRun", 'Int'>
+  readonly itemsRejected: Prisma.FieldRef<"SyncRun", 'Int'>
+  readonly cursorAt: Prisma.FieldRef<"SyncRun", 'DateTime'>
   readonly error: Prisma.FieldRef<"SyncRun", 'String'>
 }
     
