@@ -14,6 +14,7 @@ const environment: Environment = {
   DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/test",
   ERP_BASE_URL: "https://pta-erp-api.onrender.com",
   ERP_API_KEY: "test-erp-key",
+  TRUST_PROXY: 0,
   corsOrigins: ["http://localhost:5173"],
 };
 

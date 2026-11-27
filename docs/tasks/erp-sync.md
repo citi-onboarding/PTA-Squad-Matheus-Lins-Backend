@@ -90,7 +90,7 @@ PR 2 — schedule and status:
   `src/shared/config/env.ts` and `.env.example`.
 - `GET /sync/status`, with its Zod response schema and the regenerated
   `openapi.json`.
-- ADR 0005: where the scheduling runs.
+- ADR 0006: where the scheduling runs.
 
 ### Out of scope / Non-goals
 
@@ -170,7 +170,7 @@ PR 2 — schedule and status:
 - Unit tests use an in-memory repository and a fake ERP client; the repository is
   covered by `erp-sync.repository.integration.test.ts` against local Postgres. The
   ERP client's existing tests must stay green without changes.
-- No new dependency; scheduling uses the platform timer unless ADR 0005 decides
+- No new dependency; scheduling uses the platform timer unless ADR 0006 decides
   otherwise.
 - `prisma/migrations/20261125181425_base_data_model` is applied and must not be
   edited; the new `SyncRun` columns come in a new additive migration.
@@ -260,7 +260,7 @@ Open — PR 2:
       the placeholder key `not-configured` (ADR-0003) and record failures.
       Alternatives: (a) set `SYNC_ENABLED=false` in both; (b) keep the default
       and accept the failed runs. Owner: manager.
-- [ ] **Where the scheduling runs (ADR 0005).** Alternatives: (a) inside the API
+- [ ] **Where the scheduling runs (ADR 0006).** Alternatives: (a) inside the API
       with a timer, guarded by the `SyncRun` lock; (b) an external cron of the
       hosting platform calling `pnpm sync:erp`, with no scheduler in the API.
       Depends on where the staging environment is hosted. Owner: manager.
