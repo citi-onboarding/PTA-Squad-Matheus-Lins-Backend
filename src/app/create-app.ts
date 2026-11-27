@@ -14,6 +14,9 @@ import { createPrismaAuthRepository } from "../modules/auth/auth.repository.js";
 import type { AuthRepository } from "../modules/auth/auth.repository.js";
 import { createAuthRouter } from "../modules/auth/auth.routes.js";
 import { AuthService } from "../modules/auth/auth.service.js";
+import { PrismaErpSyncRepository } from "../modules/erp-sync/erp-sync.repository.js";
+import { createErpSyncRouter } from "../modules/erp-sync/erp-sync.routes.js";
+import type { SyncStatusRepository } from "../modules/erp-sync/erp-sync.status.js";
 import type { Environment } from "../shared/config/env.js";
 import type { Database } from "../shared/database/create-database.js";
 import { createOpenApiDocument } from "../shared/http/openapi.js";
@@ -26,6 +29,8 @@ interface CreateAppOptions {
   environment: Environment;
   /** Overrides the Prisma repository, for tests without a database. */
   authRepository?: AuthRepository;
+  /** Overrides the Prisma repository behind `GET /sync/status`, for tests. */
+  syncStatusRepository?: SyncStatusRepository;
   /** Overrides the clock used for session expiry, for tests. */
   now?: () => Date;
   /** Overrides the log destination, for tests that inspect log output. */
@@ -36,6 +41,7 @@ export function createApp({
   database,
   environment,
   authRepository = createPrismaAuthRepository(database),
+  syncStatusRepository = new PrismaErpSyncRepository(database),
   now,
   logDestination,
 }: CreateAppOptions): Express {
@@ -112,6 +118,13 @@ export function createApp({
   app.use(
     "/auth",
     createAuthRouter({ service: authService, requireAuth: authenticated }),
+  );
+  app.use(
+    "/sync",
+    createErpSyncRouter({
+      repository: syncStatusRepository,
+      requireAuth: authenticated,
+    }),
   );
 
   app.use(notFoundHandler);

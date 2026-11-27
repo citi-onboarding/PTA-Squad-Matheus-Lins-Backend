@@ -22,7 +22,9 @@ import type {
 } from "./erp-sync.mappers.js";
 import type {
   ErpSyncRepository,
+  LastAttempt,
   LastSuccessfulRun,
+  RunningRun,
   RunOutcome,
   SyncEntity,
 } from "./erp-sync.repository.js";
@@ -174,7 +176,41 @@ class InMemoryErpSyncRepository implements ErpSyncRepository {
       .filter((candidate) => candidate.entity === entity)
       .filter((candidate) => candidate.result === "SUCCESS")
       .at(-1);
-    return Promise.resolve(run ? { cursorAt: run.cursorAt ?? null } : null);
+    return Promise.resolve(
+      run
+        ? { cursorAt: run.cursorAt ?? null, finishedAt: run.finishedAt ?? null }
+        : null,
+    );
+  }
+
+  findLastAttemptByEntity(entity: SyncEntity): Promise<LastAttempt | null> {
+    const run = this.runs
+      .filter((candidate) => candidate.entity === entity)
+      .at(-1);
+    return Promise.resolve(
+      run ? { startedAt: run.startedAt, result: run.result } : null,
+    );
+  }
+
+  findRunningRun(): Promise<RunningRun | null> {
+    const run = this.runs.filter(({ result }) => result === "RUNNING").at(-1);
+    return Promise.resolve(
+      run ? { entity: run.entity, startedAt: run.startedAt } : null,
+    );
+  }
+
+  markStaleRuns(startedBefore: Date, now: Date): Promise<number> {
+    const stale = this.runs.filter(
+      (run) => run.result === "RUNNING" && run.startedAt <= startedBefore,
+    );
+    for (const run of stale) {
+      Object.assign(run, {
+        result: "FAILURE",
+        error: "stale run",
+        finishedAt: now,
+      });
+    }
+    return Promise.resolve(stale.length);
   }
 
   findMissingCustomerCodes(codes: string[]): Promise<string[]> {
@@ -212,6 +248,18 @@ class InMemoryErpSyncRepository implements ErpSyncRepository {
     });
   }
 
+  /** Records a run that has not ended, as a process still running (or killed) would leave it. */
+  seedRunning(entity: SyncEntity, startedAt: Date): StoredRun {
+    const run: StoredRun = {
+      id: this.runs.length + 1,
+      entity,
+      startedAt,
+      result: "RUNNING",
+    };
+    this.runs.push(run);
+    return run;
+  }
+
   lastRun(entity: SyncEntity): StoredRun | undefined {
     return this.runs.filter((run) => run.entity === entity).at(-1);
   }
@@ -242,6 +290,7 @@ function setup() {
   const erp = createFakeErp();
   const repository = new InMemoryErpSyncRepository();
   const logger = {
+    info: vi.fn<SyncLogger["info"]>(),
     warn: vi.fn<SyncLogger["warn"]>(),
     error: vi.fn<SyncLogger["error"]>(),
   };
@@ -402,6 +451,7 @@ describe("F02 / US-002 ERP synchronization runs (RN-09, RN-15)", () => {
       itemsRead: 2,
       itemsRejected: 0,
       error: null,
+      retryAfterSeconds: null,
     });
   });
 
@@ -988,4 +1038,94 @@ describe("F02 / US-002 synchronization order", () => {
       result: "SUCCESS",
     });
   });
+});
+
+// ---------------------------------------------------------------------------
+// Daily limit and the run lock (erp-sync-schedule)
+// ---------------------------------------------------------------------------
+
+const MINUTE = 60_000;
+
+describe("F02 / US-002 ERP daily limit (RN-15)", () => {
+  it("ends the run at once and reports how long the ERP asked to wait", async () => {
+    const { erp, repository, service } = setup();
+    erp.listProducts.mockRejectedValueOnce(new RateLimitedError(3_600));
+
+    const result = await service.syncProducts();
+
+    expect(result).toMatchObject({
+      result: "FAILURE",
+      error: "rate limited",
+      retryAfterSeconds: 3_600,
+    });
+    expect(repository.runs.some((run) => run.result === "RUNNING")).toBe(false);
+  });
+
+  it("reports no wait for any other failure", async () => {
+    const { erp, service } = setup();
+    erp.listProducts.mockRejectedValueOnce(
+      new ErpRequestError({ kind: "http", status: 503 }),
+    );
+
+    const result = await service.syncProducts();
+
+    expect(result).toMatchObject({
+      result: "FAILURE",
+      retryAfterSeconds: null,
+    });
+  });
+});
+
+describe("F02 / US-002 one synchronization at a time", () => {
+  it("runs a full synchronization when no run is in progress", async () => {
+    const { repository, service } = setup();
+
+    const outcome = await service.syncAllIfIdle();
+
+    expect(outcome.status).toBe("completed");
+    expect(
+      outcome.status === "completed" &&
+        outcome.results.map(({ entity }) => entity),
+    ).toEqual(["customers", "products", "receivables"]);
+    expect(repository.runs).toHaveLength(3);
+  });
+
+  it("skips and logs while a run started 10 minutes ago is in progress", async () => {
+    const { erp, repository, logger, service } = setup();
+    repository.seedRunning(
+      "receivables",
+      new Date(now.getTime() - 10 * MINUTE),
+    );
+
+    const outcome = await service.syncAllIfIdle();
+
+    expect(outcome).toEqual({ status: "skipped" });
+    expect(erp.listCustomers).not.toHaveBeenCalled();
+    expect(repository.runs).toHaveLength(1);
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ entity: "receivables" }),
+      "sync skipped: run in progress",
+    );
+  });
+
+  it.each([30, 31])(
+    "marks a run started %i minutes ago as a stale run and synchronizes",
+    async (minutes) => {
+      const { erp, repository, service } = setup();
+      const stuck = repository.seedRunning(
+        "customers",
+        new Date(now.getTime() - minutes * MINUTE),
+      );
+
+      const outcome = await service.syncAllIfIdle();
+
+      expect(stuck).toMatchObject({
+        result: "FAILURE",
+        error: "stale run",
+        finishedAt: now,
+      });
+      expect(outcome.status).toBe("completed");
+      expect(erp.listCustomers).toHaveBeenCalledTimes(1);
+    },
+  );
 });

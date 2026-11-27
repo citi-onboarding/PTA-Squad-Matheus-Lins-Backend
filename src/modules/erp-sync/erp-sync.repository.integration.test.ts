@@ -280,6 +280,7 @@ describe("F02 / US-002 ERP sync repository against PostgreSQL (RN-09)", () => {
 
     expect(await runs.findLastSuccessfulRun("customers")).toEqual({
       cursorAt: new Date("2026-11-21T10:00:00.000Z"),
+      finishedAt: new Date("2026-11-21T10:01:00.000Z"),
     });
     expect(await runs.findLastSuccessfulRun("receivables")).toBeNull();
   });
@@ -297,5 +298,98 @@ describe("F02 / US-002 ERP sync repository against PostgreSQL (RN-09)", () => {
       ).sort(),
     ).toEqual(["C-MISS-2", "C-MISS-3"]);
     expect(await repository().findMissingCustomerCodes([])).toEqual([]);
+  });
+});
+
+describe("F02 / US-002 run lock and status against PostgreSQL (RN-15)", () => {
+  const success = {
+    result: "SUCCESS" as const,
+    itemsRead: 1,
+    itemsRejected: 0,
+    cursorAt: null,
+    error: null,
+  };
+
+  it("finds the newest run of an entity, whatever its result", async () => {
+    await testDatabase().syncRun.deleteMany();
+    const runs = repository();
+    const finished = await runs.startRun(
+      "products",
+      new Date("2026-11-27T10:00:00.000Z"),
+    );
+    await runs.finishRun(finished, {
+      ...success,
+      finishedAt: new Date("2026-11-27T10:01:00.000Z"),
+    });
+    await runs.startRun("products", new Date("2026-11-27T11:00:00.000Z"));
+
+    expect(await runs.findLastAttemptByEntity("products")).toEqual({
+      startedAt: new Date("2026-11-27T11:00:00.000Z"),
+      result: "RUNNING",
+    });
+    expect(await runs.findLastAttemptByEntity("receivables")).toBeNull();
+  });
+
+  it("finds the newest run still in progress, of any entity", async () => {
+    await testDatabase().syncRun.deleteMany();
+    const runs = repository();
+    expect(await runs.findRunningRun()).toBeNull();
+
+    const finished = await runs.startRun(
+      "customers",
+      new Date("2026-11-27T10:00:00.000Z"),
+    );
+    await runs.finishRun(finished, {
+      ...success,
+      finishedAt: new Date("2026-11-27T10:01:00.000Z"),
+    });
+    expect(await runs.findRunningRun()).toBeNull();
+
+    await runs.startRun("receivables", new Date("2026-11-27T12:00:00.000Z"));
+    expect(await runs.findRunningRun()).toEqual({
+      entity: "receivables",
+      startedAt: new Date("2026-11-27T12:00:00.000Z"),
+    });
+  });
+
+  it("ends only the runs in progress since the cutoff as stale runs", async () => {
+    await testDatabase().syncRun.deleteMany();
+    const runs = repository();
+    const now = new Date("2026-11-27T12:00:00.000Z");
+    const cutoff = new Date("2026-11-27T11:30:00.000Z");
+    const old = await runs.startRun(
+      "customers",
+      new Date("2026-11-27T11:00:00.000Z"),
+    );
+    const atCutoff = await runs.startRun("products", cutoff);
+    const young = await runs.startRun(
+      "receivables",
+      new Date("2026-11-27T11:45:00.000Z"),
+    );
+    const done = await runs.startRun(
+      "customers",
+      new Date("2026-11-27T10:00:00.000Z"),
+    );
+    await runs.finishRun(done, {
+      ...success,
+      finishedAt: new Date("2026-11-27T10:01:00.000Z"),
+    });
+
+    expect(await runs.markStaleRuns(cutoff, now)).toBe(2);
+
+    const byId = async (id: number) =>
+      testDatabase().syncRun.findUniqueOrThrow({ where: { id } });
+    for (const id of [old, atCutoff]) {
+      expect(await byId(id)).toMatchObject({
+        result: "FAILURE",
+        error: "stale run",
+        finishedAt: now,
+      });
+    }
+    expect(await byId(young)).toMatchObject({
+      result: "RUNNING",
+      finishedAt: null,
+    });
+    expect(await byId(done)).toMatchObject({ result: "SUCCESS", error: null });
   });
 });

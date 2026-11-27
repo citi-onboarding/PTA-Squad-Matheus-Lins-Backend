@@ -94,6 +94,9 @@ try {
     "ERP_BASE_URL=https://pta-erp-api.onrender.com",
     "--env",
     "ERP_API_KEY=not-configured",
+    // The placeholder key would only record failed ERP sync runs (ADR 0006).
+    "--env",
+    "SYNC_ENABLED=false",
     image,
   ]);
   for (let attempt = 0; attempt < 30; attempt += 1) {

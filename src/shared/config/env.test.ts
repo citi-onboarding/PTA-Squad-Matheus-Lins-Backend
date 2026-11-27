@@ -71,6 +71,38 @@ describe("parseEnvironment", () => {
     },
   );
 
+  it("defaults the ERP sync to every 60 minutes, retry after 10, enabled", () => {
+    const environment = parseEnvironment(validEnvironment);
+
+    expect(environment.SYNC_INTERVAL_MINUTES).toBe(60);
+    expect(environment.SYNC_RETRY_MINUTES).toBe(10);
+    expect(environment.SYNC_ENABLED).toBe(true);
+  });
+
+  it("reads the ERP sync settings", () => {
+    const environment = parseEnvironment({
+      ...validEnvironment,
+      SYNC_INTERVAL_MINUTES: "5",
+      SYNC_RETRY_MINUTES: "1",
+      SYNC_ENABLED: "false",
+    });
+
+    expect(environment.SYNC_INTERVAL_MINUTES).toBe(5);
+    expect(environment.SYNC_RETRY_MINUTES).toBe(1);
+    expect(environment.SYNC_ENABLED).toBe(false);
+  });
+
+  it.each([
+    ["SYNC_INTERVAL_MINUTES", "4"],
+    ["SYNC_INTERVAL_MINUTES", "7.5"],
+    ["SYNC_RETRY_MINUTES", "0"],
+    ["SYNC_ENABLED", "yes"],
+  ])("rejects %s=%s", (name, value) => {
+    expect(() =>
+      parseEnvironment({ ...validEnvironment, [name]: value }),
+    ).toThrow();
+  });
+
   it("rejects an empty CORS allowlist", () => {
     expect(() =>
       parseEnvironment({ ...validEnvironment, CORS_ORIGINS: " , " }),

@@ -20,12 +20,29 @@ export interface RunOutcome {
 
 export interface LastSuccessfulRun {
   cursorAt: Date | null;
+  finishedAt: Date | null;
+}
+
+/** The newest run of an entity, whatever its result. */
+export interface LastAttempt {
+  startedAt: Date;
+  result: "RUNNING" | RunResult;
+}
+
+/** A run that has not ended yet. */
+export interface RunningRun {
+  entity: string;
+  startedAt: Date;
 }
 
 export interface ErpSyncRepository {
   startRun(entity: SyncEntity, startedAt: Date): Promise<number>;
   finishRun(runId: number, outcome: RunOutcome): Promise<void>;
   findLastSuccessfulRun(entity: SyncEntity): Promise<LastSuccessfulRun | null>;
+  findLastAttemptByEntity(entity: SyncEntity): Promise<LastAttempt | null>;
+  findRunningRun(): Promise<RunningRun | null>;
+  /** Ends every run still RUNNING that started at or before `startedBefore` as `stale run`. */
+  markStaleRuns(startedBefore: Date, now: Date): Promise<number>;
   findMissingCustomerCodes(codes: string[]): Promise<string[]>;
   saveCustomers(customers: CustomerRecord[]): Promise<void>;
   saveProducts(products: ProductRecord[]): Promise<void>;
@@ -50,8 +67,36 @@ export class PrismaErpSyncRepository implements ErpSyncRepository {
     return this.database.syncRun.findFirst({
       where: { type: "ERP_SYNC", entity, result: "SUCCESS" },
       orderBy: [{ startedAt: "desc" }, { id: "desc" }],
-      select: { cursorAt: true },
+      select: { cursorAt: true, finishedAt: true },
     });
+  }
+
+  findLastAttemptByEntity(entity: SyncEntity): Promise<LastAttempt | null> {
+    return this.database.syncRun.findFirst({
+      where: { type: "ERP_SYNC", entity },
+      orderBy: [{ startedAt: "desc" }, { id: "desc" }],
+      select: { startedAt: true, result: true },
+    });
+  }
+
+  findRunningRun(): Promise<RunningRun | null> {
+    return this.database.syncRun.findFirst({
+      where: { type: "ERP_SYNC", result: "RUNNING" },
+      orderBy: [{ startedAt: "desc" }, { id: "desc" }],
+      select: { entity: true, startedAt: true },
+    });
+  }
+
+  async markStaleRuns(startedBefore: Date, now: Date): Promise<number> {
+    const { count } = await this.database.syncRun.updateMany({
+      where: {
+        type: "ERP_SYNC",
+        result: "RUNNING",
+        startedAt: { lte: startedBefore },
+      },
+      data: { result: "FAILURE", error: "stale run", finishedAt: now },
+    });
+    return count;
   }
 
   async findMissingCustomerCodes(codes: string[]): Promise<string[]> {

@@ -24,6 +24,9 @@ const environment: Environment = {
   ERP_BASE_URL: "https://pta-erp-api.onrender.com",
   ERP_API_KEY: "test-erp-key",
   TRUST_PROXY: 0,
+  SYNC_INTERVAL_MINUTES: 60,
+  SYNC_RETRY_MINUTES: 10,
+  SYNC_ENABLED: false,
   corsOrigins: ["http://localhost:5173"],
 };
 

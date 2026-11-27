@@ -108,6 +108,65 @@
           "email",
           "password"
         ]
+      },
+      "SyncStatus": {
+        "type": "object",
+        "properties": {
+          "customers": {
+            "$ref": "#/components/schemas/EntitySyncStatus"
+          },
+          "products": {
+            "$ref": "#/components/schemas/EntitySyncStatus"
+          },
+          "receivables": {
+            "$ref": "#/components/schemas/EntitySyncStatus"
+          }
+        },
+        "required": [
+          "customers",
+          "products",
+          "receivables"
+        ],
+        "additionalProperties": false
+      },
+      "EntitySyncStatus": {
+        "type": "object",
+        "properties": {
+          "lastSuccessAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "End of the last successful run of this entity, or null."
+          },
+          "lastAttemptAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Start of the last run of this entity, whatever its result."
+          },
+          "lastResult": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "SUCCESS",
+              "FAILURE",
+              "RUNNING",
+              null
+            ]
+          }
+        },
+        "required": [
+          "lastSuccessAt",
+          "lastAttemptAt",
+          "lastResult"
+        ],
+        "additionalProperties": false
       }
     },
     "parameters": {}
@@ -231,6 +290,35 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/sync/status": {
+      "get": {
+        "tags": [
+          "sync"
+        ],
+        "summary": "When the ERP data was last synchronized",
+        "description": "For \"Dados do ERP de [data e hora]\" on every screen (US-002). Any signed-in role.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Synchronization status of customers, products, and receivables",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncStatus"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, unknown, revoked, or expired token"
           }
         }
       }
