@@ -251,16 +251,27 @@ Resolved by the manager in the PR 1 review on 2026-11-27:
 
 Open — PR 1: none.
 
-Open — PR 2:
+Resolved by the manager for PR 2 on 2026-11-27:
 
-- [ ] **Scope of the run lock.** Alternatives: (a) one lock for the whole
-      `syncAll`; (b) one lock per entity. Owner: manager or tech lead.
-- [ ] **`SYNC_ENABLED` in local runtimes.** With the default `true`,
-      `docker compose up` and `pnpm test:container` start a synchronization with
-      the placeholder key `not-configured` (ADR-0003) and record failures.
-      Alternatives: (a) set `SYNC_ENABLED=false` in both; (b) keep the default
-      and accept the failed runs. Owner: manager.
-- [ ] **Where the scheduling runs (ADR 0006).** Alternatives: (a) inside the API
-      with a timer, guarded by the `SyncRun` lock; (b) an external cron of the
-      hosting platform calling `pnpm sync:erp`, with no scheduler in the API.
-      Depends on where the staging environment is hosted. Owner: manager.
+- [x] **Scope of the run lock.** One lock for the whole `syncAll`: a
+      synchronization is skipped while any run of any entity is `RUNNING` and
+      younger than 30 minutes. `syncAll` already runs the entities in sequence.
+- [x] **`SYNC_ENABLED` in local runtimes.** `SYNC_ENABLED=false` in
+      `docker compose` and in `pnpm test:container`, which use the placeholder key
+      `not-configured` (ADR-0003) and would only record failed runs.
+- [x] **Where the scheduling runs (ADR 0006).** Inside the API with the platform
+      timer, guarded by the `SyncRun` lock. No new dependency, and it works on any
+      hosting with a single API instance. `pnpm sync:erp` stays for manual runs.
+
+Decided during PR 2 (not critical; flagged in the pull request for review):
+
+- [x] **After a skipped synchronization**, the next check happens after
+      `SYNC_RETRY_MINUTES`, so a run left by another process is picked up soon
+      after it ends or becomes stale.
+- [x] **When `syncAll` throws** (for example, the database is down), the
+      scheduler logs only the error type and code and tries again after
+      `SYNC_RETRY_MINUTES`.
+- [x] **`pnpm sync:erp` honors the same lock**, so a manual run never overlaps the
+      API's scheduled run; it prints `skipped: run in progress` and exits 1.
+
+Open — PR 2: none.
